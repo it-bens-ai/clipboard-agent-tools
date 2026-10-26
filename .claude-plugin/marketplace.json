@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "clipboard-agent-tools",
+  "owner": {
+    "name": "Martin Bens",
+    "email": "martin.bens@it-bens.de"
+  },
+  "metadata": {
+    "description": "Cross-platform clipboard tools for AI coding agents, delivered via MCP",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "clipboard-copy",
+      "source": "./plugins/clipboard-copy",
+      "category": "productivity"
+    }
+  ]
+}
