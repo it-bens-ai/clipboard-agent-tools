@@ -1,13 +1,20 @@
 # Clipboard Agent Tools
 
+[![bash 5.1+](https://img.shields.io/badge/bash-5.1%2B-4EAA25?logo=gnubash&logoColor=white)](./plugins/clipboard-copy/README.md#requirements)
+[![jq 1.7+](https://img.shields.io/badge/jq-1.7%2B-0E5E8E)](./plugins/clipboard-copy/README.md#requirements)
+[![License: MIT](https://img.shields.io/github/license/it-bens-ai/clipboard-agent-tools)](./LICENSE)
+
+[![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-D97757)](#claude-code)
+[![Codex plugin](https://img.shields.io/badge/Codex-plugin-000000)](#codex)
+
 A marketplace repository for clipboard tools that AI coding agents call as MCP tools.
 
 The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server exposing `clipboard_copy` (inline text) and `clipboard_copy_file` (contents of a file at an absolute path). It picks the clipboard backend for the current environment — `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel` on Linux, `clip.exe` on WSL, `clip` on Cygwin/MSYS — and falls back to OSC 52 escape sequences over SSH and in headless environments. Shared Claude Code and Codex hooks name the MCP tools at session start and block native clipboard-write Bash commands.
 
 ## Requirements
 
-- `bash` 4+
-- `jq`
+- `bash` 5.1+ and `jq` 1.7+, first on the `PATH` the agent host starts the MCP server with. macOS ships `/bin/bash` 3.2; install a newer one (for example `brew install bash`).
+- `ps` and `mkfifo`
 - `base64` or `openssl`, used only by the OSC 52 fallback
 - A platform clipboard utility when you want to skip OSC 52
 

@@ -54,6 +54,8 @@ Writes the contents of a file to the system clipboard. Useful when the content i
 
 The path must be absolute, point to an existing regular file, and be readable. On success returns `Copied N bytes from <path> to clipboard via <backend>`.
 
+The server checks each call's arguments against the tool's `inputSchema` in `mcp-server-clipboard/tools.json` before the tool runs. A path that does not start with `/`, a value of the wrong type, or an argument the tables above do not list returns an error result, and nothing is copied.
+
 Both tool descriptions carry the no-echo rule described under [SessionStart Hook](#sessionstart-hook), so it applies even on a host that registers the MCP server without the plugin's hooks.
 
 ## Backend Detection
@@ -118,8 +120,8 @@ If your terminal does not honor OSC 52 the copy will silently no-op as far as th
 
 ## Requirements
 
-- `bash` 4+
-- `jq`
+- `bash` 5.1+ and `jq` 1.7+, first on the `PATH` the agent host starts the MCP server with. The server exits at startup under an older `bash` or `jq`. macOS ships `/bin/bash` 3.2; install a newer one (for example `brew install bash`).
+- `ps` and `mkfifo`, used by the MCP core to run each tool call
 - `base64` or `openssl` (only used by the OSC 52 fallback)
 - A clipboard utility for your platform if you want to skip OSC 52:
   - macOS: `pbcopy` (preinstalled)
@@ -140,7 +142,7 @@ plugins/clipboard-copy/
 ├── .mcp.json                       # Claude Code MCP registration
 ├── README.md
 ├── shared/
-│   └── mcpserver_core.sh           # JSON-RPC 2.0 stdio handler
+│   └── mcpserver_core.sh           # JSON-RPC 2.0 stdio handler, vendored from bash-mcp-sdk
 ├── hooks/
 │   ├── hooks.json                  # SessionStart + PreToolUse(Bash) registration
 │   ├── prompts/
@@ -152,7 +154,7 @@ plugins/clipboard-copy/
 │           └── common.sh           # parse_hook_input + block_clipboard
 └── mcp-server-clipboard/
     ├── server.sh                    # Entry point (registered in .mcp.json)
-    ├── config.json                  # MCP serverInfo + instructions
+    ├── config.json                  # MCP protocolVersion, serverInfo, capabilities
     ├── tools.json                   # Tool schemas (clipboard_copy, clipboard_copy_file)
     └── lib/
         └── clipboard.sh             # Backend detection + tool implementations

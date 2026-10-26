@@ -118,10 +118,6 @@ tool_clipboard_copy_file() {
         echo "Error: path is required"
         return 1
     fi
-    if [[ "${path}" != /* ]]; then
-        echo "Error: path must be absolute (start with '/'), got: ${path}"
-        return 1
-    fi
     if [[ ! -e "${path}" ]]; then
         echo "Error: file not found: ${path}"
         return 1

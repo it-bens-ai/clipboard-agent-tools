@@ -26,7 +26,7 @@ INITIALIZE_REQUEST='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"pro
 }
 
 @test "Codex MCP launcher initializes from its declared cwd" {
-    run bash -c '
+    run --separate-stderr bash -c '
         cd "$1"
         printf "%s\n" "$2" | bash ./mcp-server-clipboard/server.sh
     ' _ "${PLUGIN_DIR}" "${INITIALIZE_REQUEST}"

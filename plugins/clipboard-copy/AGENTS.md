@@ -23,10 +23,10 @@ plugins/clipboard-copy/
 │   └── plugin.json                  # Codex plugin manifest and MCP server declaration
 ├── .mcp.json                        # Claude Code MCP registration
 ├── shared/
-│   └── mcpserver_core.sh            # Generic JSON-RPC 2.0 stdio handler
+│   └── mcpserver_core.sh            # JSON-RPC 2.0 stdio handler, vendored from bash-mcp-sdk (do not edit)
 ├── mcp-server-clipboard/
 │   ├── server.sh                    # MCP entry point (referenced from .mcp.json)
-│   ├── config.json                  # serverInfo + instructions returned by initialize
+│   ├── config.json                  # protocolVersion, serverInfo, capabilities for initialize
 │   ├── tools.json                   # Tool schemas returned by tools/list
 │   └── lib/
 │       └── clipboard.sh             # Backend detection + tool implementations
@@ -65,10 +65,10 @@ Reads stdin and dispatches to the right utility (`pbcopy`, `wl-copy`, `xclip -se
 Reads `.text` from the JSON args, validates it is non-empty, picks a backend, pipes the text via `printf '%s'` into `_clipboard_send_stdin`, and emits `Copied N bytes to clipboard via <backend>`.
 
 #### `tool_clipboard_copy_file(args)` (in `lib/clipboard.sh`)
-Reads `.path` from the JSON args. Validates that the path is non-empty, absolute (starts with `/`), exists, is a regular file (rejects directories and special files), and is readable. Picks a backend, redirects the file directly into `_clipboard_send_stdin`, and emits `Copied N bytes from <path> to clipboard via <backend>`. Size is read with `wc -c < "$path" | tr -d ' '` for portability between BSD and GNU `wc`.
+Reads `.path` from the JSON args. Validates that the path is non-empty, exists, is a regular file (rejects directories and special files), and is readable. The absolute-path rule is not checked here: the `"pattern": "^/"` in `tools.json` rejects a relative path before the function runs. Picks a backend, redirects the file directly into `_clipboard_send_stdin`, and emits `Copied N bytes from <path> to clipboard via <backend>`. Size is read with `wc -c < "$path" | tr -d ' '` for portability between BSD and GNU `wc`.
 
 #### `run_mcp_server` (in `shared/mcpserver_core.sh`)
-JSON-RPC 2.0 stdio loop. Dispatches `initialize`, `tools/list`, `tools/call`, `notifications/initialized`, and `ping`. Tool calls invoke `tool_<name>` functions; missing functions return JSON-RPC error -32601.
+JSON-RPC 2.0 stdio loop from the vendored `shopwareLabs/bash-mcp-sdk` core; the pinned release is in `.mcp-sdk.lock` at the repository root, and the file is replaced only through `.github/scripts/vendor-mcp-sdk.sh`. Handles `initialize`, `tools/list`, `tools/call`, `ping`, `notifications/initialized`, and `notifications/cancelled`. A `tools/call` runs `tool_<name>` only when `tools.json` declares `<name>`; an undeclared name, or a declared one with no function, returns JSON-RPC error -32601. Arguments are checked against the tool's `inputSchema` first, and a mismatch returns an `isError` result without running the tool. Each call runs in its own subshell and process group, with stdin from `/dev/null`.
 
 ### SessionStart hook (`hooks/`)
 
@@ -95,7 +95,6 @@ Sources `lib/common.sh`, calls `parse_hook_input`, then runs a series of grep -E
 | Change OSC 52 wrapping (e.g. screen support) | `mcp-server-clipboard/lib/clipboard.sh` — `osc52` branch in `_clipboard_send_stdin` |
 | Add a new MCP tool | Add `tool_<name>` to `lib/clipboard.sh` and a schema entry to `mcp-server-clipboard/tools.json` |
 | Update tool descriptions / schemas | `mcp-server-clipboard/tools.json` |
-| Update server-level `instructions` text | `mcp-server-clipboard/config.json` |
 | Adjust the SessionStart directive text | `hooks/prompts/mcp-tool-directives.md` |
 | Change how the SessionStart directive is assembled or emitted | `hooks/scripts/session-start.sh` |
 | Adjust which Bash patterns get blocked | `hooks/scripts/check-clipboard.sh` |
@@ -108,8 +107,8 @@ Sources `lib/common.sh`, calls `parse_hook_input`, then runs a series of grep -E
 ## MCP Wire Flow
 
 1. Claude Code spawns `mcp-server-clipboard/server.sh` per `.mcp.json`; Codex spawns the same server through `.codex-plugin/plugin.json`.
-2. `server.sh` exports `MCP_CONFIG_FILE`, `MCP_TOOLS_LIST_FILE`, `MCP_LOG_FILE`, sources `mcpserver_core.sh` + `lib/clipboard.sh`, then calls `run_mcp_server`.
-3. The loop reads JSON-RPC requests one per line on stdin and writes responses on stdout. The server log goes to `mcp-server-clipboard/server.log` (gitignored — log file rather than committed state).
+2. `server.sh` exports `MCP_CONFIG_FILE`, `MCP_TOOLS_LIST_FILE`, `MCP_LOG_STDERR=1`, sources `mcpserver_core.sh` + `lib/clipboard.sh`, then calls `run_mcp_server`.
+3. The loop reads JSON-RPC requests one per line on stdin and writes responses on stdout. Log lines go to stderr; a `MCP_LOG_FILE` set in the host environment also receives them.
 4. `tools/call clipboard_copy` → `tool_clipboard_copy` → `_clipboard_send_stdin <backend>` → backend utility or OSC 52 escape to `/dev/tty`.
 
 ## Codex Smoke Test
@@ -135,13 +134,15 @@ BATS tests live in `plugin-tests/clipboard-copy/`:
 .bats/bats-core/bin/bats --filter-tags allow         plugin-tests/clipboard-copy/*.bats
 .bats/bats-core/bin/bats --filter-tags validate      plugin-tests/clipboard-copy/*.bats
 .bats/bats-core/bin/bats --filter-tags session-start plugin-tests/clipboard-copy/*.bats
+.bats/bats-core/bin/bats --filter-tags server        plugin-tests/clipboard-copy/*.bats
 ```
 
 Files:
 
 - `check_clipboard.bats` — block/allow matrix for the PreToolUse hook (pbcopy/wl-copy/clip/clip.exe/xclip/xsel × direct/piped/chained, plus paste-mode and false-positive guards).
 - `detect_backend.bats` — `_clipboard_detect_backend` cascade across OS × installed-utility × WAYLAND_DISPLAY/DISPLAY combinations.
-- `tool_clipboard_copy_file.bats` — every path-validation branch (missing/empty/relative/nonexistent/directory/unreadable) plus byte-exact dispatcher capture for the success path. Smoke-checks `tool_clipboard_copy` text validation too.
+- `tool_clipboard_copy_file.bats` — every path-validation branch in the function (missing/empty/nonexistent/directory/unreadable) plus byte-exact dispatcher capture for the success path. Smoke-checks `tool_clipboard_copy` text validation too.
+- `server_tools_call.bats` — drives `server.sh` with JSON-RPC `tools/call` requests: schema refusals (relative path, undeclared argument, wrong type) return `isError` without running the tool, and an absolute path reaches a stubbed backend.
 - `session_start.bats` — JSON shape (`hookEventName`, non-empty `additionalContext`), directive content (ALWAYS/NEVER framing, both tool names, every blocked Bash command, paste-mode escape hatch), plus the silent-success path when the prompt template is absent.
 
 ### Mocking

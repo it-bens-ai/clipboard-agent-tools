@@ -6,6 +6,7 @@
       "inputSchema": {
         "type": "object",
         "required": ["text"],
+        "additionalProperties": false,
         "properties": {
           "text": {
             "type": "string",
@@ -20,9 +21,11 @@
       "inputSchema": {
         "type": "object",
         "required": ["path"],
+        "additionalProperties": false,
         "properties": {
           "path": {
             "type": "string",
+            "pattern": "^/",
             "description": "Absolute filesystem path to the file whose contents should be copied. Must start with '/'."
           }
         }
