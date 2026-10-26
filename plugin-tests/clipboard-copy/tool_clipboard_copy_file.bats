@@ -37,21 +37,6 @@ setup() {
     assert_output --partial "path is required"
 }
 
-# bats test_tags=validate,relative
-@test "relative path → 'path must be absolute'" {
-    run tool_clipboard_copy_file '{"path":"relative.txt"}'
-    assert_failure
-    assert_output --partial "must be absolute"
-    assert_output --partial "relative.txt"
-}
-
-# bats test_tags=validate,relative
-@test "tilde-prefixed path → 'path must be absolute' (no shell expansion in JSON)" {
-    run tool_clipboard_copy_file '{"path":"~/file.txt"}'
-    assert_failure
-    assert_output --partial "must be absolute"
-}
-
 # bats test_tags=validate,nonexistent
 @test "nonexistent absolute path → 'file not found'" {
     run tool_clipboard_copy_file '{"path":"/no/such/file/here.txt"}'

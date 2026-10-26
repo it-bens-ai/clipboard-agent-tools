@@ -18,11 +18,24 @@ plugins/clipboard-copy/                  # THE PLUGIN: MCP server, hooks, host m
 plugin-tests/clipboard-copy/             # BATS suites mirroring the plugin structure
 plugin-tests/test_helper/                # Shared BATS helper
 .github/scripts/setup-bats.sh            # Installs BATS into .bats/
+.github/scripts/vendor-mcp-sdk.sh        # Vendors the pinned bash-mcp-sdk core
+.mcp-sdk.lock                            # Pinned bash-mcp-sdk release and SHA-256
 ```
 
 Both marketplace files point at the same plugin root, `./plugins/clipboard-copy`. Claude Code sources use `{"name": "<name>", "source": "./plugins/<name>"}`; Codex sources use `{"source": {"source": "local", "path": "./plugins/<name>"}}`. Paths are relative to the marketplace root, which is the repository root.
 
 Plugin changes start at `plugins/clipboard-copy/AGENTS.md`: it maps each task (backend detection, MCP tool, hook pattern, directive text) to the file and function that owns it, and its README covers the tool catalog and backend order.
+
+## Vendored MCP SDK
+
+`plugins/clipboard-copy/shared/mcpserver_core.sh` is a copy of `lib/mcpserver_core.sh` from [`shopwareLabs/bash-mcp-sdk`](https://github.com/shopwareLabs/bash-mcp-sdk). `.mcp-sdk.lock` pins the release tag (`version=`) and the file's SHA-256 (`sha256=`). Do not edit the vendored file; send protocol changes to the SDK repository.
+
+```bash
+./.github/scripts/vendor-mcp-sdk.sh            # download the pinned release and overwrite the vendored copy
+./.github/scripts/vendor-mcp-sdk.sh --check    # exit non-zero when the vendored copy differs from the pinned release
+```
+
+Both modes download the file from GitHub and fail when its SHA-256 differs from the lock. To move to a new release, set `version=` and `sha256=` in `.mcp-sdk.lock`, then run the script. No CI runs `--check`; run it before committing a change under `plugins/clipboard-copy/shared/`.
 
 ## Testing
 

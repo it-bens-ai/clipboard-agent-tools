@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- `.mcp-sdk.lock` and `.github/scripts/vendor-mcp-sdk.sh` at the repository root pin the vendored MCP core to a `shopwareLabs/bash-mcp-sdk` release and its SHA-256. `vendor-mcp-sdk.sh --check` exits non-zero when the vendored copy differs from the pinned release.
+- `plugin-tests/clipboard-copy/server_tools_call.bats` drives `server.sh` with JSON-RPC `tools/call` requests and covers the schema refusals.
+
+### Changed
+
+- **Breaking**: `shared/mcpserver_core.sh` is now bash-mcp-sdk v6.0.0, replacing a trimmed copy of an earlier release. The server needs `bash` 5.1+ and `jq` 1.7+ on the `PATH` the host starts it with, plus `ps` and `mkfifo`. A host whose first `bash` on `PATH` is older, such as stock macOS `/bin/bash` 3.2, can no longer start the server.
+- Tool arguments are checked against each tool's `inputSchema` before the tool runs. `clipboard_copy_file.path` must match `^/`, and both tools set `additionalProperties: false`, so an undeclared argument, a value of the wrong type, or a relative path returns an `isError` result.
+- A `tools/call` runs each tool in its own process group, and the core kills that group when the call ends. The Linux backends `wl-copy`, `xclip`, and `xsel` have not been tested against this.
+- The server logs to stderr (`MCP_LOG_STDERR=1`) instead of `mcp-server-clipboard/server.log`.
+
+### Removed
+
+- The absolute-path check in `tool_clipboard_copy_file`; the `pattern` in `tools.json` covers it.
+- The `instructions` field in `mcp-server-clipboard/config.json`. The core never sent it in the `initialize` response.
+
 ## [1.3.0] - 2026-08-21
 
 ### Added

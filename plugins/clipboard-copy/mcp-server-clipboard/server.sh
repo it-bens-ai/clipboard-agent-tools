@@ -3,18 +3,20 @@
 # Provides the clipboard_copy tool, dispatching to the right backend per environment.
 
 set -euo pipefail
-shopt -s inherit_errexit 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_DIR="$(cd "${SCRIPT_DIR}/../shared" && pwd)"
 
 MCP_CONFIG_FILE="${SCRIPT_DIR}/config.json"
 MCP_TOOLS_LIST_FILE="${SCRIPT_DIR}/tools.json"
-MCP_LOG_FILE="${SCRIPT_DIR}/server.log"
+MCP_LOG_STDERR=1
 
-export SCRIPT_DIR SHARED_DIR MCP_CONFIG_FILE MCP_TOOLS_LIST_FILE MCP_LOG_FILE
+export SCRIPT_DIR SHARED_DIR MCP_CONFIG_FILE MCP_TOOLS_LIST_FILE MCP_LOG_STDERR
 
+# Sourced before enabling inherit_errexit: the core rejects bash < 5.1 with a
+# clear message, while the shopt would fail first on an older shell.
 source "${SHARED_DIR}/mcpserver_core.sh"
+shopt -s inherit_errexit
 source "${SCRIPT_DIR}/lib/clipboard.sh"
 
 trap 'log "ERROR" "Unexpected error on line ${LINENO}"' ERR
