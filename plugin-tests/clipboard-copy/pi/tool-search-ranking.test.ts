@@ -64,8 +64,8 @@ function loadCatalog(): ToolDefinition[] {
 }
 
 /**
- * The server description the extension registers when its session starts.
- */
+The server description the extension registers when its session starts.
+*/
 async function registeredDescription(t: TestContext): Promise<string> {
   const fake = registerOnFakePi(clipboardCopy);
   const start = fake.handlers.get("session_start");

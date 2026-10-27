@@ -3,33 +3,33 @@ import { spawn } from "node:child_process";
 export interface ScriptResult {
   code: number | null;
   /**
-   * Why the script's process group could not be killed after the timeout, when that failed.
-   */
+  Why the script's process group could not be killed after the timeout, when that failed.
+  */
   killFailure?: string;
   stderr: string;
   stdout: string;
 }
 
 /**
- * Sends `signal` to `pid`, as `process.kill` does: a negative `pid` names a process group.
- */
+Sends `signal` to `pid`, as `process.kill` does: a negative `pid` names a process group.
+*/
 type Kill = (pid: number, signal: NodeJS.Signals) => void;
 
 const EMPTY_BLOCK_REASON = "clipboard-copy: the clipboard check blocked the command without a reason.";
 
 /**
- * A gate script that neither allowed (exit 0) nor blocked (exit 2) the call still blocks it, with a
- * `failure` that says what went wrong in place of the script's `reason`.
- */
+A gate script that neither allowed (exit 0) nor blocked (exit 2) the call still blocks it, with a
+`failure` that says what went wrong in place of the script's `reason`.
+*/
 export type GateResult = { block: false } | { block: true; failure: string } | { block: true; reason: string };
 
 /**
- * Runs `bash <script>` with `input` as JSON on stdin and `CLIPBOARD_COPY_HOST=pi` in its environment.
- * Never rejects: a failed spawn or the timeout resolves `{ code: null, stdout: "", stderr: "" }`. A
- * script that exits without reading all of its input still reports its own exit code. On timeout the
- * script's whole process group is killed with `kill`; a kill that fails for any reason other than
- * the group being gone already adds `killFailure`.
- */
+Runs `bash <script>` with `input` as JSON on stdin and `CLIPBOARD_COPY_HOST=pi` in its environment.
+Never rejects: a failed spawn or the timeout resolves `{ code: null, stdout: "", stderr: "" }`. A
+script that exits without reading all of its input still reports its own exit code. On timeout the
+script's whole process group is killed with `kill`; a kill that fails for any reason other than
+the group being gone already adds `killFailure`.
+*/
 export function runScript(
   script: string,
   input: unknown,
@@ -97,8 +97,8 @@ export function runScript(
 }
 
 /**
- * Describes how a script run that did not succeed ended, with its trimmed stderr when it has any.
- */
+Describes how a script run that did not succeed ended, with its trimmed stderr when it has any.
+*/
 export function describeFailure({ code, killFailure, stderr }: ScriptResult): string {
   if (code === null) {
     const unfinished = "did not finish: it timed out, could not start, or was killed by a signal";
@@ -109,10 +109,10 @@ export function describeFailure({ code, killFailure, stderr }: ScriptResult): st
 }
 
 /**
- * Runs a hook gate script. Exit code 0 allows, and exit code 2 blocks with the trimmed stderr as the
- * reason, or with a reason saying the check gave none when that is empty. Any other outcome,
- * including a timeout or a failed spawn, blocks with a `failure`. Never rejects.
- */
+Runs a hook gate script. Exit code 0 allows, and exit code 2 blocks with the trimmed stderr as the
+reason, or with a reason saying the check gave none when that is empty. Any other outcome,
+including a timeout or a failed spawn, blocks with a `failure`. Never rejects.
+*/
 export async function runGate(script: string, input: unknown, timeoutMs: number): Promise<GateResult> {
   const result = await runScript(script, input, timeoutMs);
   if (result.code === 2) {

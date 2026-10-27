@@ -35,8 +35,8 @@ const HANDOFF_NAME = "osc52.AbCd1234";
 const SUMMARY = "Copied 5 bytes to clipboard via osc52";
 
 /**
- * The tool names the MCP server declares in its tools.json.
- */
+The tool names the MCP server declares in its tools.json.
+*/
 function serverToolNames(): string[] {
   const file = path.join(PLUGIN_DIR, "mcp-server-clipboard", "tools.json");
   const catalog = JSON.parse(readFileSync(file, "utf8")) as { tools?: unknown };
@@ -96,9 +96,9 @@ function registeredServer(fake: FakePi): FakeMcpServerConfig {
 }
 
 /**
- * Registers the extension on a fake pi and ends its session after the test, which removes the
- * handoff directory a session start created.
- */
+Registers the extension on a fake pi and ends its session after the test, which removes the
+handoff directory a session start created.
+*/
 function register(t: TestContext, extension: typeof clipboardCopy = clipboardCopy): FakePi {
   const fake = registerOnFakePi(extension);
   t.after(async () => {
@@ -108,9 +108,9 @@ function register(t: TestContext, extension: typeof clipboardCopy = clipboardCop
 }
 
 /**
- * Registers the extension and starts its session, which creates the handoff directory and registers
- * the server.
- */
+Registers the extension and starts its session, which creates the handoff directory and registers
+the server.
+*/
 async function registerStarted(t: TestContext): Promise<FakePi> {
   const fake = register(t);
   const { ctx } = makeContext(makeTemporaryDirectory(t), "tui", true);
@@ -119,8 +119,8 @@ async function registerStarted(t: TestContext): Promise<FakePi> {
 }
 
 /**
- * Runs `act` with TMPDIR, which os.tmpdir() reads on every call, set to `dir`, and restores it.
- */
+Runs `act` with TMPDIR, which os.tmpdir() reads on every call, set to `dir`, and restores it.
+*/
 async function withTmpdir<T>(dir: string, act: () => Promise<T>): Promise<T> {
   // eslint-disable-next-line sonarjs/publicly-writable-directories -- reads the variable to restore it
   const originalTmpdir = process.env.TMPDIR;
@@ -140,8 +140,8 @@ async function withTmpdir<T>(dir: string, act: () => Promise<T>): Promise<T> {
 }
 
 /**
- * The handoff directory as the MCP server receives it: the registered env value resolved by pi.
- */
+The handoff directory as the MCP server receives it: the registered env value resolved by pi.
+*/
 async function handoffDirectory(fake: FakePi): Promise<string> {
   const server = registeredServer(fake);
   if (!("env" in server) || server.env?.CLIPBOARD_COPY_OSC52_DIR === undefined) {
@@ -155,9 +155,9 @@ async function handoffDirectory(fake: FakePi): Promise<string> {
 }
 
 /**
- * Loads a copy of the extension whose hook scripts named in `scripts` are replaced by the given
- * bodies, and registers it.
- */
+Loads a copy of the extension whose hook scripts named in `scripts` are replaced by the given
+bodies, and registers it.
+*/
 async function registerCopy(t: TestContext, scripts: Record<string, string>): Promise<FakePi> {
   const dir = makeTemporaryDirectory(t);
   for (const part of ["pi", "hooks"]) {
@@ -172,8 +172,8 @@ async function registerCopy(t: TestContext, scripts: Record<string, string>): Pr
 }
 
 /**
- * Starts a session and returns the system prompt sections the next agent start receives.
- */
+Starts a session and returns the system prompt sections the next agent start receives.
+*/
 async function sectionsAfterSessionStart(fake: FakePi, ctx: FakeContext["ctx"]): Promise<Record<string, string>> {
   await handler(fake, "session_start")(SESSION_START_EVENT, ctx);
   const sections: Record<string, string> = {};
@@ -191,17 +191,17 @@ function errorResult(text: string): Record<string, unknown> {
 }
 
 /**
- * Opens `file` the way the extension does, without following a link, expects it to fail with
- * `code`, and returns Node's message. Node names the failing system call differently per platform,
- * so a test expects Node's own message instead of a literal.
- */
+Opens `file` the way the extension does, without following a link, expects it to fail with
+`code`, and returns Node's message. Node names the failing system call differently per platform,
+so a test expects Node's own message instead of a literal.
+*/
 function openFailureMessage(file: string, code: string): string {
   return failureMessage(() => openSync(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK), code);
 }
 
 /**
- * Runs `act`, expects it to throw an error with `code`, and returns the error's message.
- */
+Runs `act`, expects it to throw an error with `code`, and returns the error's message.
+*/
 function failureMessage(act: () => unknown, code: string): string {
   let message = "";
   assert.throws(act, (error: NodeJS.ErrnoException) => {
@@ -213,10 +213,10 @@ function failureMessage(act: () => unknown, code: string): string {
 
 
 /**
- * Runs the MCP server library's OSC 52 writer and handoff note on `text`, as server.sh does for a
- * call that falls back to OSC 52 with CLIPBOARD_COPY_OSC52_DIR set to `dir`, and returns the note
- * line it prints. `tmux` is the TMUX value the server sees, or undefined to leave TMUX unset.
- */
+Runs the MCP server library's OSC 52 writer and handoff note on `text`, as server.sh does for a
+call that falls back to OSC 52 with CLIPBOARD_COPY_OSC52_DIR set to `dir`, and returns the note
+line it prints. `tmux` is the TMUX value the server sees, or undefined to leave TMUX unset.
+*/
 function serverHandoffLine(t: TestContext, dir: string, text: string, tmux: string | undefined): string {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -242,10 +242,10 @@ function serverHandoffLine(t: TestContext, dir: string, text: string, tmux: stri
 }
 
 /**
- * Runs the tool_result handler with stdout's `isTTY` set to `isTty`, and returns its result with
- * everything it wrote to stdout. Both stdout changes are undone before this returns, so the test
- * runner's own output is not captured.
- */
+Runs the tool_result handler with stdout's `isTTY` set to `isTty`, and returns its result with
+everything it wrote to stdout. Both stdout changes are undone before this returns, so the test
+runner's own output is not captured.
+*/
 function runToolResult(
   t: TestContext,
   fake: FakePi,
@@ -256,14 +256,15 @@ function runToolResult(
   const written: string[] = [];
   const original = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
   Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: isTty, writable: true });
-  const write = t.mock.method(process.stdout, "write", (chunk: unknown) => {
+  // eslint-disable-next-line unicorn/consistent-boolean-name -- a mock of stdout.write, not a boolean
+  const stdoutWrite = t.mock.method(process.stdout, "write", (chunk: unknown) => {
     written.push(String(chunk));
     return true;
   });
   try {
     return { result: handler(fake, "tool_result")(event, ctx), written };
   } finally {
-    write.mock.restore();
+    stdoutWrite.mock.restore();
     if (original === undefined) {
       Reflect.deleteProperty(process.stdout, "isTTY");
     } else {
@@ -404,7 +405,8 @@ test("a session-start failure goes to stderr when pi has no UI", async (t) => {
   const fake = await registerCopy(t, { "session-start.sh": "exit 1\n" });
   const { ctx, notifications } = makeContext(makeTemporaryDirectory(t), "print", false);
   const written: string[] = [];
-  const write = t.mock.method(process.stderr, "write", (chunk: unknown) => {
+  // eslint-disable-next-line unicorn/consistent-boolean-name -- a mock of stderr.write, not a boolean
+  const stderrWrite = t.mock.method(process.stderr, "write", (chunk: unknown) => {
     written.push(String(chunk));
     return true;
   });
@@ -413,7 +415,7 @@ test("a session-start failure goes to stderr when pi has no UI", async (t) => {
   try {
     sections = await sectionsAfterSessionStart(fake, ctx);
   } finally {
-    write.mock.restore();
+    stderrWrite.mock.restore();
   }
 
   assert.deepEqual(sections, {});

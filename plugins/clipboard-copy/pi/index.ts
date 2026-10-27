@@ -24,9 +24,9 @@ const SCRIPT_TIMEOUT_MS = 5000;
 const SERVER_NAME = "clipboard-copy";
 
 /**
- * pi's name for an MCP tool: `mcp__<server>__<tool>`, with every character outside `[A-Za-z0-9_]` as
- * `_`. pi shortens names over 64 characters with a hash; these stay under that.
- */
+pi's name for an MCP tool: `mcp__<server>__<tool>`, with every character outside `[A-Za-z0-9_]` as
+`_`. pi shortens names over 64 characters with a hash; these stay under that.
+*/
 function mcpToolName(server: string, tool: string): string {
   return `mcp__${server}__${tool}`.replaceAll(/\W/g, "_");
 }
@@ -65,15 +65,15 @@ function readAdditionalContext(stdout: string): DirectiveRead {
 }
 
 /**
- * pi expands `$NAME` and `${NAME}` in MCP server env values, and reads `$$` as a literal `$`.
- */
+pi expands `$NAME` and `${NAME}` in MCP server env values, and reads `$$` as a literal `$`.
+*/
 function escapeEnvironmentValue(value: string): string {
   return value.replaceAll("$", () => "$$");
 }
 
 /**
- * Shows a warning in pi's UI, or writes it to stderr when pi runs without one (print and JSON modes).
- */
+Shows a warning in pi's UI, or writes it to stderr when pi runs without one (print and JSON modes).
+*/
 function warn(ctx: ExtensionContext, message: string): void {
   if (ctx.hasUI) {
     ctx.ui.notify(message, "warning");
@@ -83,8 +83,8 @@ function warn(ctx: ExtensionContext, message: string): void {
 }
 
 /**
- * A tool result holding one text block, with the matching MCP `CallToolResult` as structured content.
- */
+A tool result holding one text block, with the matching MCP `CallToolResult` as structured content.
+*/
 function textResult(text: string, isError: boolean): ToolResultEventResult {
   const content = [{ text, type: "text" as const }];
   return { content, isError, structuredContent: { content, isError } };
@@ -95,9 +95,9 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * Returns the OSC 52 sequence in `file`. Throws when the file cannot be opened without following a
- * link, is not a regular file owned by this user, or cannot be read.
- */
+Returns the OSC 52 sequence in `file`. Throws when the file cannot be opened without following a
+link, is not a regular file owned by this user, or cannot be read.
+*/
 function readHandoffFile(file: string): string {
   // The name holds no path separator, so the joined path is a direct child of the handoff
   // directory. O_NOFOLLOW makes a link at that name fail instead of following it to a file
@@ -117,9 +117,9 @@ function readHandoffFile(file: string): string {
 }
 
 /**
- * Removes whatever is at `file` without following a link: unlinks a non-directory and removes an
- * empty directory. Nothing at `file` leaves nothing to remove.
- */
+Removes whatever is at `file` without following a link: unlinks a non-directory and removes an
+empty directory. Nothing at `file` leaves nothing to remove.
+*/
 function removeEntry(file: string): void {
   const stats = lstatSync(file, { throwIfNoEntry: false });
   if (stats === undefined) {
@@ -133,12 +133,12 @@ function removeEntry(file: string): void {
 }
 
 /**
- * Reads and removes the handoff file `name` in `dir`, and writes its OSC 52 sequence to pi's
- * terminal. Returns the result that replaces the tool's: `summary` once the sequence is written, an
- * error when the file is not a handoff file or pi has no interactive terminal. Throws when the file
- * cannot be read or removed; an entry that cannot be read is removed first, and the error also says
- * when that removal failed.
- */
+Reads and removes the handoff file `name` in `dir`, and writes its OSC 52 sequence to pi's
+terminal. Returns the result that replaces the tool's: `summary` once the sequence is written, an
+error when the file is not a handoff file or pi has no interactive terminal. Throws when the file
+cannot be read or removed; an entry that cannot be read is removed first, and the error also says
+when that removal failed.
+*/
 function handBack(dir: string, name: string, summary: string, ctx: ExtensionContext): ToolResultEventResult {
   const file = path.join(dir, name);
   let sequence: string;
@@ -173,9 +173,9 @@ function handBack(dir: string, name: string, summary: string, ctx: ExtensionCont
 }
 
 /**
- * Creates the directory where the MCP server, which runs without a terminal, leaves OSC 52 sequences
- * for the tool_result handler to write to pi's. Owner-only, as the server requires.
- */
+Creates the directory where the MCP server, which runs without a terminal, leaves OSC 52 sequences
+for the tool_result handler to write to pi's. Owner-only, as the server requires.
+*/
 function createHandoffDirectory(): string {
   const created = mkdtempSync(path.join(tmpdir(), "clipboard-copy-pi-"));
   const handoffDirectory = realpathSync(created);
@@ -243,7 +243,7 @@ export default function clipboardCopy(pi: ExtensionAPI): void {
     if (!HANDOFF_TOOL_NAMES.has(event.toolName) || event.isError) {
       return;
     }
-    const text = event.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n");
+    const text = event.content.flatMap((block) => (block.type === "text" ? block.text : [])).join("\n");
     const cut = text.lastIndexOf("\n");
     const lastLine = text.slice(cut + 1);
     const name = lastLine.slice(HANDOFF_MARKER_PREFIX.length);

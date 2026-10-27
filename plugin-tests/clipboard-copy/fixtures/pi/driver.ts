@@ -30,11 +30,11 @@ const SETTLE_FILE = process.env.SETTLE_FILE;
 const TMPDIR = process.env.TMPDIR;
 
 /**
- * Records the entries under $TMPDIR before each model request in the scenarios that hand OSC 52 off
- * through it. The request that follows the tool call runs after the extension's tool_result handler
- * and before pi's session_shutdown removes the whole handoff directory, so the suite can tell
- * whether the handler deleted the handoff file itself.
- */
+Records the entries under $TMPDIR before each model request in the scenarios that hand OSC 52 off
+through it. The request that follows the tool call runs after the extension's tool_result handler
+and before pi's session_shutdown removes the whole handoff directory, so the suite can tell
+whether the handler deleted the handoff file itself.
+*/
 function recordTemporaryDirectoryEntries(): void {
   if (TMPDIR === undefined || TMPDIR === "" || (SCENARIO !== "osc52" && SCENARIO !== "tui")) {
     return;
@@ -65,8 +65,8 @@ const copyFile = fauxToolCall(
 const bashPbcopy = fauxToolCall("bash", { command: "printf x | pbcopy" }, { id: "bash-pbcopy" });
 
 /**
- * One assistant turn per model request; the last turn ends the run with plain text.
- */
+One assistant turn per model request; the last turn ends the run with plain text.
+*/
 const SCENARIOS: Record<string, (ToolCall | ToolCall[] | string)[]> = {
   deferred: [searchCopy, copyText, searchCopyFile, copyFile, bashPbcopy, "done"],
   osc52: [
