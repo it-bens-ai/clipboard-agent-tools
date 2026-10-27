@@ -33,8 +33,17 @@ on:
 
 jobs:
   bash:
-    name: Bash Tests & Lint
+    name: Bash Tests & Lint (Pi ${{ matrix.pi }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Oldest supported Pi release. Raise it by hand when support for older releases ends.
+          - pi: oldest
+            pi-version: 1.0.0
+          # The release pinned in package.json devDependencies. Renovate bumps it.
+          - pi: latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,6 +55,22 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Install the oldest supported Pi
+        if: matrix.pi-version
+        env:
+          PI_VERSION: ${{ matrix.pi-version }}
+        run: |
+          npm install --no-save \
+            "@earendil-works/pi-coding-agent@${PI_VERSION}" \
+            "@earendil-works/pi-ai@${PI_VERSION}"
+          for PKG in "@earendil-works/pi-coding-agent" "@earendil-works/pi-ai"; do
+            INSTALLED=$(node -e 'const { readFileSync } = require("node:fs"); const pkg = JSON.parse(readFileSync("node_modules/" + process.argv[1] + "/package.json", "utf8")); process.stdout.write(pkg.version);' "${PKG}")
+            if [[ "${INSTALLED}" != "${PI_VERSION}" ]]; then
+              echo "::error::${PKG} installed at ${INSTALLED}, expected ${PI_VERSION}"
+              exit 1
+            fi
+          done
 
       # The Node tests run the hook scripts, which need jq.
       - name: Install jq

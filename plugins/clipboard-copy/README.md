@@ -167,7 +167,7 @@ The extension's `tool_result` handler reads the file, deletes it, and writes the
   - Linux X11: `xclip` or `xsel`
   - WSL: `clip.exe` (preinstalled on Windows)
   - Cygwin/MSYS: `clip`
-- Pi only: Node.js 22.19 or newer, and `@earendil-works/pi-coding-agent` 1.x (1.0.0 or a later 1.x release), which the package declares as a `^1.0.0` peer dependency
+- Pi only: Node.js 22.19 or newer and Pi 1.x. CI tests the package against Pi 1.0.0, the oldest supported release, and against the release pinned in `devDependencies`. Pi has shipped breaking changes in 1.x minor and patch releases, so a release newer than the pinned one is untested. The package declares `@earendil-works/pi-coding-agent` as a peer dependency with the range `*`, as Pi's package documentation asks, because Pi loads the extension against its own copy and does not check the range.
 
 ## Troubleshooting
 
