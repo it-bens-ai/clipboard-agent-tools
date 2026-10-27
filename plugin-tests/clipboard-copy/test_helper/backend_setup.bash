@@ -39,6 +39,28 @@ backend_setup_cleanup() {
     unset WAYLAND_DISPLAY DISPLAY TMUX
 }
 
+# Write a `uname` stub into an existing directory without touching PATH.
+# `uname` and `uname -s` print the given OS name; every other invocation runs
+# the real `uname`. The real binaries are taken from the absolute paths
+# backend_setup_init captured, so the stub can be written under the mock PATH.
+# Arguments: directory to write into (must exist), OS name.
+backend_write_uname_stub() {
+    local dir="$1" os="$2"
+    local cat_bin="${BACKEND_CAT:-$(command -v cat)}"
+    local chmod_bin="${BACKEND_CHMOD:-$(command -v chmod)}"
+    local real_uname="${BACKEND_UNAME:-$(command -v uname)}"
+
+    "${cat_bin}" > "${dir}/uname" <<EOF
+#!/bin/bash
+if [[ \$# -eq 0 || "\$1" == "-s" ]]; then
+    printf '%s\n' '${os}'
+else
+    exec '${real_uname}' "\$@"
+fi
+EOF
+    "${chmod_bin}" +x "${dir}/uname"
+}
+
 # Configure mocks. Positional key=value args (defaults all 0 / unset):
 #   os=<Darwin|Linux|CYGWIN_NT-10.0|MINGW64_NT-10.0|MSYS_NT-10.0|UnknownOS>
 #   pbcopy=<0|1>      wl_copy=<0|1>      xclip=<0|1>      xsel=<0|1>
@@ -64,15 +86,7 @@ backend_set() {
     done
 
     if [[ -n "$os" ]]; then
-        "${BACKEND_CAT}" > "${BACKEND_MOCK_DIR}/uname" <<EOF
-#!/bin/bash
-if [[ \$# -eq 0 || "\$1" == "-s" ]]; then
-    printf '%s\n' '${os}'
-else
-    exec "${BACKEND_UNAME}" "\$@"
-fi
-EOF
-        "${BACKEND_CHMOD}" +x "${BACKEND_MOCK_DIR}/uname"
+        backend_write_uname_stub "${BACKEND_MOCK_DIR}" "$os"
     fi
 
     _backend_stub() {

@@ -84,6 +84,94 @@ SCRIPT="check-clipboard.sh"
 }
 
 # =============================================================================
+# BLOCK MESSAGE — tool names as the host spells them
+# =============================================================================
+
+# Run the hook on a command with the given CLIPBOARD_COPY_HOST, "unset" for none.
+# Arguments: host, command.
+run_hook_on_host() {
+    local -a host_env=(-u CLIPBOARD_COPY_HOST)
+    [[ "$1" == "unset" ]] || host_env=("CLIPBOARD_COPY_HOST=$1")
+    run_hook "$SCRIPT" "$2" "${host_env[@]}"
+}
+
+# bats test_tags=block,host
+@test "without CLIPBOARD_COPY_HOST the block message names the tools unprefixed" {
+    run_hook_on_host unset "echo hi | pbcopy"
+
+    assert_failure 2
+    assert_output "Use the clipboard_copy MCP tool instead.
+
+Bad command detected: echo hi | pbcopy
+
+Use clipboard_copy with the text directly, or clipboard_copy_file with an absolute path when the content is already on disk.
+
+The clipboard-copy MCP tool:
+  - Auto-detects the right backend per OS (pbcopy / wl-copy / xclip / xsel / clip.exe / clip)
+  - Falls back to OSC 52 over SSH and in headless environments"
+}
+
+# bats test_tags=block,host
+@test "on pi the block message names the tools as pi exposes them" {
+    run_hook_on_host pi "echo hi | pbcopy"
+
+    assert_failure 2
+    assert_output "Use the mcp__clipboard_copy__clipboard_copy MCP tool instead.
+
+Bad command detected: echo hi | pbcopy
+
+Use mcp__clipboard_copy__clipboard_copy with the text directly, or mcp__clipboard_copy__clipboard_copy_file with an absolute path when the content is already on disk.
+
+The clipboard-copy MCP tool:
+  - Auto-detects the right backend per OS (pbcopy / wl-copy / xclip / xsel / clip.exe / clip)
+  - Falls back to OSC 52 over SSH and in headless environments"
+}
+
+# bats test_tags=block,host
+@test "an unsupported CLIPBOARD_COPY_HOST fails a clipboard write with a message naming the value" {
+    run_hook_on_host codex "echo hi | pbcopy"
+
+    assert_failure 1
+    assert_output 'clipboard-copy: unsupported CLIPBOARD_COPY_HOST "codex"; expected pi or unset'
+}
+
+# bats test_tags=allow,host
+@test "an unsupported CLIPBOARD_COPY_HOST fails a command that writes no clipboard" {
+    run_hook_on_host codex "git status"
+
+    assert_failure 1
+    assert_output 'clipboard-copy: unsupported CLIPBOARD_COPY_HOST "codex"; expected pi or unset'
+}
+
+# bats test_tags=block,host
+@test "on pi a hint keeps a tool name that is already qualified" {
+    # shellcheck disable=SC2016  # Source the library and pass the hint in the child shell.
+    run env CLIPBOARD_COPY_HOST=pi bash -c 'source "$1"; COMMAND="echo hi | pbcopy"; block_clipboard clipboard_copy "Use mcp__clipboard_copy__clipboard_copy_file when the content is on disk, or clipboard_copy for inline text."' _ "${SCRIPTS_DIR}/lib/common.sh"
+
+    assert_failure 2
+    assert_output --partial "Use mcp__clipboard_copy__clipboard_copy_file when the content is on disk"
+    assert_output --partial "or mcp__clipboard_copy__clipboard_copy for inline text"
+}
+
+# bats test_tags=block,host,pi
+@test "on pi an already-qualified tool argument is not prefixed twice" {
+    # shellcheck disable=SC2016  # Source the library and pass the tool and hint in the child shell.
+    run env CLIPBOARD_COPY_HOST=pi bash -c 'source "$1"; COMMAND="echo hi | pbcopy"; block_clipboard mcp__clipboard_copy__clipboard_copy_file "Use clipboard_copy_file with an absolute path."' _ "${SCRIPTS_DIR}/lib/common.sh"
+
+    assert_failure 2
+    assert_output --partial "Use the mcp__clipboard_copy__clipboard_copy_file MCP tool instead."
+}
+
+# bats test_tags=block,host,pi
+@test "on pi a bare tool argument is prefixed once" {
+    # shellcheck disable=SC2016  # Source the library and pass the tool and hint in the child shell.
+    run env CLIPBOARD_COPY_HOST=pi bash -c 'source "$1"; COMMAND="echo hi | pbcopy"; block_clipboard clipboard_copy_file "Use clipboard_copy_file with an absolute path."' _ "${SCRIPTS_DIR}/lib/common.sh"
+
+    assert_failure 2
+    assert_output --partial "Use the mcp__clipboard_copy__clipboard_copy_file MCP tool instead."
+}
+
+# =============================================================================
 # ALLOW — paste reads, unrelated commands, false-positive guards
 # =============================================================================
 

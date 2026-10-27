@@ -16,17 +16,25 @@ REPO_ROOT="$(_get_repo_root)"
 load "${REPO_ROOT}/.bats/bats-support/load"
 load "${REPO_ROOT}/.bats/bats-assert/load"
 
+# Both variables steer the plugin's hooks and server, so a developer shell that
+# exports one would change what these tests observe. Suites that need a value
+# set it explicitly.
+unset CLIPBOARD_COPY_HOST CLIPBOARD_COPY_OSC52_DIR
+
 # Create JSON input for hook scripts
 make_hook_input() {
     local command="$1"
     jq -cn --arg cmd "$command" '{tool_input: {command: $cmd}}'
 }
 
-# Run a hook script with a command and capture output
+# Run a hook script with a command and capture output.
+# Trailing arguments are env(1) arguments applied to the hook process, such as
+# CLIPBOARD_COPY_HOST=pi or -u CLIPBOARD_COPY_HOST.
 # Note: SCRIPTS_DIR must be set by the plugin-specific helper
 run_hook() {
     local script="$1"
     local command="$2"
+    shift 2
 
     if [[ -z "${SCRIPTS_DIR:-}" ]]; then
         fail "SCRIPTS_DIR must be set before calling run_hook"
@@ -34,7 +42,8 @@ run_hook() {
 
     local payload
     payload=$(make_hook_input "$command")
-    run bash -c 'printf "%s" "$1" | bash "$2"' _ "$payload" "${SCRIPTS_DIR}/${script}"
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
+    run env "$@" bash -c 'printf "%s" "$1" | bash "$2"' _ "$payload" "${SCRIPTS_DIR}/${script}"
 }
 
 # Assert the hook rejects a clipboard write and suggests the expected MCP tool.

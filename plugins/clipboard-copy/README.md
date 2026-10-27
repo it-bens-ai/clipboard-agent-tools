@@ -2,7 +2,7 @@
 
 A bash-based MCP server that provides cross-platform clipboard tools: `clipboard_copy` (inline text) and `clipboard_copy_file` (contents of a file at an absolute path). Auto-detects the right backend (pbcopy / wl-copy / xclip / xsel / clip.exe / clip) and falls back to OSC 52 escape sequences when no native utility is available — so it still works over SSH and in headless environments.
 
-The plugin is intentionally compatible with both Claude Code and Codex. Claude Code uses `.claude-plugin/plugin.json` plus `.mcp.json`; Codex uses `.codex-plugin/plugin.json` and the repo marketplace at `.agents/plugins/marketplace.json`. The MCP server, hook scripts, and directive prompt are shared.
+The plugin is intentionally compatible with Claude Code, Codex, and Pi. Claude Code uses `.claude-plugin/plugin.json` plus `.mcp.json`; Codex uses `.codex-plugin/plugin.json` and the repo marketplace at `.agents/plugins/marketplace.json`. The MCP server, hook scripts, and directive prompt are shared. Pi loads the extension in `pi/`, which registers the same server and runs the same hook scripts; see [Pi Extension](#pi-extension).
 
 ## Quick Start
 
@@ -31,6 +31,12 @@ Then install `clipboard-copy` from Codex's plugin browser, restart Codex, and as
 > Copy the latest changelog entry to my clipboard.
 
 Codex exposes the same MCP tools. In the tested local install, they appear under the `mcp__clipboard_copy` namespace as `clipboard_copy` and `clipboard_copy_file`.
+
+### Pi
+
+The npm package is published with the release that ships Pi support. Until then, install from the Git repository. The [repository README](https://github.com/it-bens-ai/clipboard-agent-tools#pi) holds both commands and the `pi list` check.
+
+Then ask Pi to copy something. Pi names the tools `mcp__clipboard_copy__clipboard_copy` and `mcp__clipboard_copy__clipboard_copy_file`, and the model loads them through `tool_search` before the first call.
 
 ## Tools
 
@@ -83,7 +89,7 @@ The hook registration is shared between Claude Code and Codex. It resolves the p
 
 ## Bash Enforcement Hook
 
-A `PreToolUse` hook on the `Bash` tool blocks native clipboard-write commands and routes them to the MCP tools. Blocked invocations exit with code 2 and a hint pointing to `clipboard_copy` / `clipboard_copy_file`.
+A `PreToolUse` hook on the `Bash` tool blocks native clipboard-write commands and routes them to the MCP tools. Blocked invocations exit with code 2 and a hint pointing to `clipboard_copy` / `clipboard_copy_file`. An unsupported `CLIPBOARD_COPY_HOST` exits 1 with a message naming the value, for every non-empty command, whether or not it writes the clipboard. An empty command is allowed before the host is read.
 
 | Command | Action |
 |---|---|
@@ -120,6 +126,36 @@ OSC 52 is supported by most modern terminal emulators, including:
 
 If your terminal does not honor OSC 52 the copy will silently no-op as far as the system clipboard is concerned — there is no way for the server to detect that.
 
+On Pi the server does not write to `/dev/tty`; see [OSC 52 on Pi](#osc-52-on-pi).
+
+## Pi Extension
+
+The root `package.json` makes the repository a Pi package; its `pi.extensions` field names `pi/index.ts`. Pi support covers macOS and Linux.
+
+### Tools
+
+The extension registers `mcp-server-clipboard/server.sh` as the MCP server `clipboard-copy` with `exposure: "deferred"` when the session starts. Pi declares deferred tools to the model only after `tool_search` loads them, under the names `mcp__clipboard_copy__clipboard_copy` and `mcp__clipboard_copy__clipboard_copy_file`. Deferred exposure keeps Pi's declared tool set lean. The server runs with `CLIPBOARD_COPY_HOST=pi` and `CLIPBOARD_COPY_OSC52_DIR` set.
+
+### Directive
+
+At session start the extension runs `hooks/scripts/session-start.sh` with `CLIPBOARD_COPY_HOST=pi`. The script appends `hooks/prompts/host-pi.md` to the shared directive; the addendum gives the Pi tool names and tells the model how to load them with `tool_search`. The extension adds the result to the system prompt as the section `clipboard_copy`. When the script fails, times out after 5 seconds, or prints no `additionalContext`, the session gets no section. Pi then shows a warning, or writes it to stderr when Pi runs without a UI.
+
+### Bash check
+
+Before each call of Pi's `bash` tool, the extension runs `hooks/scripts/check-clipboard.sh` with the call's input. Exit 2 blocks the call, with the script's message as the reason. When the script exits 2 without a message, the block carries a fixed reason saying so. On Pi the message names the tools as `mcp__clipboard_copy__…`. Any other failure blocks the call too, with a reason naming the failure. The extension also shows a warning. Pi's `powershell` tool is not checked.
+
+The script exits 1 for an unsupported `CLIPBOARD_COPY_HOST`, and any failure blocks too. So when the check cannot run at all, every `bash` call on Pi is blocked, with a warning naming the cause. That covers a missing `jq` on Pi's `PATH`, a timeout, or a script that cannot start.
+
+### OSC 52 on Pi
+
+Pi starts MCP servers without a controlling terminal, so the server cannot reach `/dev/tty`. When `CLIPBOARD_COPY_OSC52_DIR` is set to a non-empty value, the server writes the OSC 52 sequence to a new owner-only file in that directory. It adds `OSC 52 handoff: <file name>` as the result's last line. The extension creates the directory on `session_start` with mode 700 under the system temp directory, and removes it when the session ends. The variable is honoured only with `CLIPBOARD_COPY_HOST=pi`; any other host is refused. The path must be absolute and equal its own physical path, so a symlink, a trailing slash, or a `.` component is refused. It is also refused when it is not owned by the current user, or writable by group or others.
+
+The extension's `tool_result` handler reads the file, deletes it, and writes the sequence to Pi's terminal. The model then sees the copy summary without the handoff line. When the file cannot be read, the handler removes it and returns an error.
+
+- The handoff works only in Pi's interactive mode with a terminal on stdout. In print, JSON, and RPC mode the result is an error, and nothing is copied.
+- The base64 payload is capped at 100000 characters, about 75 KB of input, and the server checks the byte count before encoding. A larger copy returns an error.
+- As everywhere, OSC 52 cannot confirm that the terminal accepted the sequence.
+
 ## Requirements
 
 - `bash` 5.1+ and `jq` 1.7+, first on the `PATH` the agent host starts the MCP server with. The server exits at startup under an older `bash` or `jq`. macOS ships `/bin/bash` 3.2; install a newer one (for example `brew install bash`).
@@ -131,36 +167,42 @@ If your terminal does not honor OSC 52 the copy will silently no-op as far as th
   - Linux X11: `xclip` or `xsel`
   - WSL: `clip.exe` (preinstalled on Windows)
   - Cygwin/MSYS: `clip`
+- Pi only: Node.js 22.19 or newer, and `@earendil-works/pi-coding-agent` 1.x (1.0.0 or a later 1.x release), which the package declares as a `^1.0.0` peer dependency
 
 ## Troubleshooting
 
 - **Server not starting:** Run `bash --version` and `jq --version` in the host's environment. The first `bash` on `PATH` must be 5.1 or newer and `jq` must be 1.7 or newer; stock macOS `/bin/bash` is 3.2. Check the MCP host's stderr for server startup logs. The server sets `MCP_LOG_STDERR=1`; it does not write a plugin-local `server.log`.
-- **Tools missing after installation:** Restart Claude Code or start a new Codex task. In Claude Code, inspect the server with `/mcp`.
+- **Tools missing after installation:** Restart Claude Code or start a new Codex task. In Claude Code, inspect the server with `/mcp`. On Pi, start a new session; the tools appear after `tool_search` loads them.
 - **Codex hook not blocking clipboard commands:** Open `/hooks` in Codex and trust the bundled hooks; untrusted plugin hooks do not run.
-- **OSC 52 reports success but nothing is copied:** The terminal must support and permit OSC 52. The server writes to `/dev/tty` and wraps the sequence for tmux when `TMUX` is set, but it cannot detect whether the terminal accepted it.
+- **Pi copy fails with "nothing was copied":** The server fell back to OSC 52, and Pi is not running in interactive mode in a terminal. Install a native clipboard utility, or run Pi interactively. See [OSC 52 on Pi](#osc-52-on-pi).
+- **OSC 52 reports success but nothing is copied:** The terminal must support and permit OSC 52. The server writes to `/dev/tty`, or, on Pi, hands the sequence to the extension to write in interactive mode. It wraps the sequence for tmux when `TMUX` is set, but it cannot detect whether the terminal accepted it.
 
 ## Layout
 
 ```
 plugins/clipboard-copy/
-├── AGENTS.md                      # Shared development guidance for Codex and Claude Code
+├── AGENTS.md                      # Shared development guidance for Claude Code, Codex, and Pi
 ├── .claude-plugin/
 │   └── plugin.json                 # Claude Code plugin manifest
 ├── .codex-plugin/
 │   └── plugin.json                 # Codex plugin manifest
 ├── .mcp.json                       # Claude Code MCP registration
 ├── README.md
+├── pi/
+│   ├── index.ts                    # Pi extension: server registration, directive, Bash check, OSC 52 handoff
+│   └── gate.ts                     # Runs a hook script and maps its exit code to allow or block
 ├── shared/
 │   └── mcpserver_core.sh           # JSON-RPC 2.0 stdio handler, vendored from bash-mcp-sdk
 ├── hooks/
 │   ├── hooks.json                  # SessionStart + PreToolUse(Bash) registration
 │   ├── prompts/
-│   │   └── mcp-tool-directives.md  # Static template injected at SessionStart
+│   │   ├── mcp-tool-directives.md  # Static template injected at SessionStart
+│   │   └── host-pi.md              # Pi addendum: tool names and tool_search loading
 │   └── scripts/
 │       ├── session-start.sh        # Emits the directive as additionalContext
 │       ├── check-clipboard.sh      # Pattern-matches and blocks native writes
 │       └── lib/
-│           └── common.sh           # parse_hook_input + block_clipboard
+│           └── common.sh           # parse_hook_input + validate_clipboard_host + block_clipboard
 └── mcp-server-clipboard/
     ├── server.sh                    # Entry point (registered in .mcp.json)
     ├── config.json                  # MCP protocolVersion, serverInfo, capabilities
@@ -169,7 +211,7 @@ plugins/clipboard-copy/
         └── clipboard.sh             # Backend detection + tool implementations
 ```
 
-Codex marketplace metadata lives outside the plugin directory at `.agents/plugins/marketplace.json`, with `source.path` pointing back to `./plugins/clipboard-copy`.
+Codex marketplace metadata lives outside the plugin directory at `.agents/plugins/marketplace.json`, with `source.path` pointing back to `./plugins/clipboard-copy`. The Pi package manifest is the repository root `package.json`.
 
 ## License
 

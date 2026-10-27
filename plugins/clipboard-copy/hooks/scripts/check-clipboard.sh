@@ -9,6 +9,7 @@
 #
 # Exit codes:
 #   0 - command allowed
+#   1 - unsupported CLIPBOARD_COPY_HOST
 #   2 - command blocked with a message shown to the agent
 
 set -euo pipefail
@@ -17,6 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 
 parse_hook_input
+validate_clipboard_host
 
 HINT="Use clipboard_copy with the text directly, or clipboard_copy_file with an absolute path when the content is already on disk."
 

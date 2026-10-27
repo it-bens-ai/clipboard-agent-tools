@@ -55,3 +55,6 @@ AGENTS.override.md
 
 # BATS testing framework (installed locally via .github/scripts/setup-bats.sh)
 .bats/
+
+# Node (pi package development install)
+node_modules/

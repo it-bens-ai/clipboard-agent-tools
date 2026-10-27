@@ -58,12 +58,113 @@ _clipboard_b64() {
     fi
 }
 
+#######################################
+# Report whether a directory is owned by the user running the server.
+# Arguments:
+#   Directory path.
+# Returns:
+#   0 when it is, 1 otherwise.
+#######################################
+_clipboard_owned_by_current_user() {
+    [[ -O "$1" ]]
+}
+
+#######################################
+# Check that a directory is safe to hand OSC 52 sequences off through: an
+# existing absolute path that is its own physical path, a directory, owned by
+# the current user, and not writable by group or others. The physical-path
+# rule refuses a symlink, a trailing slash, a "." component and a "//", so the
+# file always lands in the directory the caller named.
+# Arguments:
+#   Directory path.
+# Outputs:
+#   The failed check on stderr.
+# Returns:
+#   0 when every check passes, 1 otherwise.
+#######################################
+_clipboard_check_handoff_dir() {
+    local dir="$1"
+    if [[ "${dir}" != /* ]]; then
+        echo "Error: CLIPBOARD_COPY_OSC52_DIR is not a canonical path: ${dir}" >&2
+        return 1
+    fi
+    if [[ ! -e "${dir}" ]]; then
+        echo "Error: CLIPBOARD_COPY_OSC52_DIR does not exist: ${dir}" >&2
+        return 1
+    fi
+    if [[ ! -d "${dir}" ]]; then
+        echo "Error: CLIPBOARD_COPY_OSC52_DIR is not a directory: ${dir}" >&2
+        return 1
+    fi
+    local physical
+    if ! physical=$(cd -- "${dir}" 2>/dev/null && pwd -P) || [[ "${physical}" != "${dir}" ]]; then
+        echo "Error: CLIPBOARD_COPY_OSC52_DIR is not a canonical path: ${dir}" >&2
+        return 1
+    fi
+    if ! _clipboard_owned_by_current_user "${dir}"; then
+        echo "Error: CLIPBOARD_COPY_OSC52_DIR is not owned by the current user: ${dir}" >&2
+        return 1
+    fi
+    # find prints the directory when its group or other write bit is set;
+    # GNU and BSD stat disagree on how to print a mode.
+    local writable
+    if ! writable=$(find "${dir}" -maxdepth 0 \( -perm -020 -o -perm -002 \)); then
+        echo "Error: cannot read the permissions of CLIPBOARD_COPY_OSC52_DIR: ${dir}" >&2
+        return 1
+    fi
+    if [[ -n "${writable}" ]]; then
+        echo "Error: CLIPBOARD_COPY_OSC52_DIR is writable by group or others: ${dir}" >&2
+        return 1
+    fi
+}
+
+#######################################
+# Hand an OSC 52 sequence off to the host instead of writing it to /dev/tty:
+# write it to a new file in CLIPBOARD_COPY_OSC52_DIR and leave the file's path
+# in _CLIPBOARD_HANDOFF_FILE for _clipboard_handoff_note. A host that starts
+# the server without a terminal, such as pi, writes the file to its own
+# terminal. A failure after the file exists removes it again, so no handoff
+# file outlives a failed call.
+# Globals:
+#   CLIPBOARD_COPY_OSC52_DIR (read)
+#   _CLIPBOARD_HANDOFF_FILE (set to the created file)
+# Arguments:
+#   The OSC 52 sequence.
+# Outputs:
+#   The failure on stderr.
+# Returns:
+#   0 when the sequence is written, 1 otherwise.
+#######################################
+_clipboard_osc52_handoff() {
+    local seq="$1"
+    local dir="${CLIPBOARD_COPY_OSC52_DIR}"
+
+    _clipboard_check_handoff_dir "${dir}" || return 1
+
+    local file
+    if ! file=$(umask 077 && mktemp "${dir}/osc52.XXXXXXXX"); then
+        echo "Error: cannot create an OSC 52 handoff file in ${dir}" >&2
+        return 1
+    fi
+    _CLIPBOARD_HANDOFF_FILE="${file}"
+    if ! printf '%s' "${seq}" >"${file}"; then
+        rm -f -- "${file}"
+        echo "Error: cannot write the OSC 52 sequence to ${file}" >&2
+        return 1
+    fi
+}
+
 # Read stdin and forward it to the given backend.
 # For OSC 52, buffers stdin, base64-encodes, and writes the escape sequence
-# to /dev/tty (not stdout) so it stays out of the MCP JSON-RPC channel.
-# Wraps the sequence in a tmux DCS pass-through when $TMUX is set.
+# to /dev/tty (not stdout) so it stays out of the MCP JSON-RPC channel, or
+# hands it off through CLIPBOARD_COPY_OSC52_DIR when that is set, which only
+# the pi host reads. Wraps the sequence in a tmux DCS pass-through when $TMUX
+# is set.
+# Arguments:
+#   Backend name.
+#   Number of bytes on stdin.
 _clipboard_write_backend() {
-    local backend="$1"
+    local backend="$1" bytes="${2:-}"
     case "${backend}" in
         pbcopy)   pbcopy ;;
         wl-copy)  wl-copy ;;
@@ -72,6 +173,26 @@ _clipboard_write_backend() {
         clip-exe) clip.exe ;;
         clip)     clip ;;
         osc52)
+            if [[ -n "${CLIPBOARD_COPY_OSC52_DIR:-}" ]]; then
+                if [[ "${CLIPBOARD_COPY_HOST:-}" != "pi" ]]; then
+                    echo "Error: CLIPBOARD_COPY_OSC52_DIR is set but CLIPBOARD_COPY_HOST is not pi" >&2
+                    return 1
+                fi
+                if [[ -z "${bytes}" ]]; then
+                    echo "Error: the byte count is required to hand the OSC 52 sequence off" >&2
+                    return 1
+                fi
+                # Refused before the encoder runs: base64 turns every 3 input
+                # bytes into 4 characters, padding the last group. The handoff
+                # path caps the encoded payload at 100000 characters, the same
+                # limit Pi applies to its own OSC 52 copies, to keep a single
+                # terminal write bounded.
+                local b64_length=$(( 4 * ((bytes + 2) / 3) ))
+                if (( b64_length > 100000 )); then
+                    echo "Error: the OSC 52 payload is ${b64_length} base64 characters, over the limit of 100000" >&2
+                    return 1
+                fi
+            fi
             local b64
             b64=$(_clipboard_b64) || return 1
             local seq
@@ -80,11 +201,19 @@ _clipboard_write_backend() {
             else
                 seq=$'\e]52;c;'"${b64}"$'\a'
             fi
+            if [[ -n "${CLIPBOARD_COPY_OSC52_DIR:-}" ]]; then
+                _clipboard_osc52_handoff "${seq}"
+                return
+            fi
             if [[ ! -w /dev/tty ]]; then
                 echo "Error: /dev/tty is not writable; OSC 52 fallback cannot reach the terminal" >&2
                 return 1
             fi
             printf '%s' "${seq}" >/dev/tty
+            ;;
+        *)
+            echo "Error: unknown clipboard backend: ${backend}" >&2
+            return 1
             ;;
     esac
 }
@@ -93,8 +222,11 @@ _clipboard_write_backend() {
 # tool result. On success the stderr is dropped unread; on failure it is
 # echoed with the exit status and the function returns 1.
 # Needs MCP_CALL_TMPDIR, the per-call directory the MCP core exports.
+# Arguments:
+#   Backend name.
+#   Number of bytes on stdin, for the backend's size caps.
 _clipboard_send_stdin() {
-    local backend="$1"
+    local backend="$1" bytes="${2:-}"
 
     if [[ -z "${MCP_CALL_TMPDIR:-}" ]]; then
         echo "Error: MCP_CALL_TMPDIR is not set; cannot capture the ${backend} backend's stderr"
@@ -106,7 +238,7 @@ _clipboard_send_stdin() {
     # that child exits.
     local stderr_file="${MCP_CALL_TMPDIR}/backend-stderr"
     local status=0
-    _clipboard_write_backend "${backend}" 2>"${stderr_file}" || status=$?
+    _clipboard_write_backend "${backend}" "${bytes}" 2>"${stderr_file}" || status=$?
 
     # No cleanup: the core removes MCP_CALL_TMPDIR when the call ends.
     if [[ ${status} -eq 0 ]]; then
@@ -120,6 +252,24 @@ _clipboard_send_stdin() {
     fi
     echo "Error: backend ${backend} failed with status ${status}${stderr_text:+: ${stderr_text}}"
     return 1
+}
+
+#######################################
+# Print the line that names this call's OSC 52 handoff file, when
+# _clipboard_osc52_handoff wrote one. The host reads it from the last line of
+# the tool result. The tool function calls this in the same shell that ran the
+# writer, so the path is still in the global.
+# Globals:
+#   _CLIPBOARD_HANDOFF_FILE (read)
+# Outputs:
+#   "OSC 52 handoff: <file name>" on stdout when the call handed a file off,
+#   nothing otherwise.
+# Returns:
+#   0.
+#######################################
+_clipboard_handoff_note() {
+    [[ -n "${_CLIPBOARD_HANDOFF_FILE:-}" ]] || return 0
+    echo "OSC 52 handoff: ${_CLIPBOARD_HANDOFF_FILE##*/}"
 }
 
 # Copy text to the system clipboard using the auto-detected backend.
@@ -162,8 +312,9 @@ tool_clipboard_copy() {
     # wc pads the count differently across platforms.
     bytes="${bytes//[[:space:]]/}"
 
-    _clipboard_send_stdin "${backend}" <"${text_file}" || return 1
+    _clipboard_send_stdin "${backend}" "${bytes}" <"${text_file}" || return 1
     echo "Copied ${bytes} bytes to clipboard via ${backend}"
+    _clipboard_handoff_note
 }
 
 # Copy the contents of a file at an absolute path to the system clipboard.
@@ -195,6 +346,7 @@ tool_clipboard_copy_file() {
     backend=$(_clipboard_detect_backend)
     size=$(wc -c < "${path}" | tr -d ' ')
 
-    _clipboard_send_stdin "${backend}" < "${path}" || return 1
+    _clipboard_send_stdin "${backend}" "${size}" < "${path}" || return 1
     echo "Copied ${size} bytes from ${path} to clipboard via ${backend}"
+    _clipboard_handoff_note
 }

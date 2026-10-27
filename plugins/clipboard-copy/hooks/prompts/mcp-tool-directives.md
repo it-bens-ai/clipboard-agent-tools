@@ -13,6 +13,6 @@ Printing the content is correct only when the user asks for it after the copy ha
 
 ## Blocked Bash equivalents
 
-`pbcopy`, `wl-copy`, `xclip` (without `-o`/`-out`), `xsel` (without `-o`/`--output`), `clip.exe`, and `clip` are blocked by a PreToolUse hook. Use the MCP tools above instead.
+`pbcopy`, `wl-copy`, `xclip` (without `-o`/`-out`), `xsel` (without `-o`/`--output`), `clip.exe`, and `clip` are blocked by a hook. Use the MCP tools above instead.
 
 Paste-mode reads (`pbpaste`, `wl-paste`, `xclip -o`, `xsel -o`/`--output`) are not affected and remain available via Bash.

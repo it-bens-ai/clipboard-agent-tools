@@ -7,16 +7,17 @@
 
 [![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-D97757)](#claude-code)
 [![Codex plugin](https://img.shields.io/badge/Codex-plugin-000000)](#codex)
+[![Pi package](https://img.shields.io/badge/Pi-package-5A4FCF)](#pi)
 
 A marketplace repository for clipboard tools that AI coding agents call as MCP tools.
 
-The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server exposing `clipboard_copy` (inline text) and `clipboard_copy_file` (contents of a file at an absolute path). It picks the clipboard backend for the current environment — `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel` on Linux, `clip.exe` on WSL, `clip` on Cygwin/MSYS — and falls back to OSC 52 escape sequences over SSH and in headless environments. Shared Claude Code and Codex hooks name the MCP tools at session start and block native clipboard-write Bash commands.
+The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server exposing `clipboard_copy` (inline text) and `clipboard_copy_file` (contents of a file at an absolute path). It picks the clipboard backend for the current environment — `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel` on Linux, `clip.exe` on WSL, `clip` on Cygwin/MSYS — and falls back to OSC 52 escape sequences over SSH and in headless environments. Hooks on Claude Code and Codex, and the extension on Pi, name the MCP tools at session start and block native clipboard-write Bash commands. The same repository is a Pi package, and its extension registers the server and runs the same hook scripts.
 
 ## Components
 
 | Plugin | MCP server | Hooks |
 |---|---|---|
-| [`clipboard-copy`](./plugins/clipboard-copy/) | `clipboard_copy` and `clipboard_copy_file` | SessionStart directive and PreToolUse Bash clipboard-write block |
+| [`clipboard-copy`](./plugins/clipboard-copy/) | `clipboard_copy` and `clipboard_copy_file` | SessionStart directive and PreToolUse Bash block; [Pi Extension](./plugins/clipboard-copy/README.md#pi-extension) covers how Pi runs them |
 
 ## Requirements
 
@@ -24,6 +25,7 @@ The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server 
 - `ps` and `mkfifo`
 - `base64` or `openssl`, used only by the OSC 52 fallback
 - A platform clipboard utility when you want to skip OSC 52
+- Pi only: Node.js 22.19+. Pi support covers macOS and Linux.
 
 ## Install
 
@@ -45,9 +47,23 @@ codex plugin add clipboard-copy@clipboard-agent-tools
 
 Start a new Codex task after installation.
 
+### Pi
+
+```bash
+pi install npm:@it-bens-ai/clipboard-agent-tools
+```
+
+The npm package is published with the release that ships Pi support, so it is not on the registry yet. Until then, install from the Git repository:
+
+```bash
+pi install git:github.com/it-bens-ai/clipboard-agent-tools
+```
+
+Run `pi list` to check that the package is configured. On Pi the tools are deferred; see [Pi Extension](./plugins/clipboard-copy/README.md#pi-extension) in the plugin README.
+
 ## Documentation
 
-[`plugins/clipboard-copy/README.md`](./plugins/clipboard-copy/README.md) covers both tools, backend detection, the hooks, and the plugin layout. [`AGENTS.md`](./AGENTS.md) covers the repository layout, test commands, and version bumps.
+[`plugins/clipboard-copy/README.md`](./plugins/clipboard-copy/README.md) covers both tools, backend detection, the hooks, the Pi extension, and the plugin layout. [`AGENTS.md`](./AGENTS.md) covers the repository layout, test commands, and version bumps.
 
 ## License
 

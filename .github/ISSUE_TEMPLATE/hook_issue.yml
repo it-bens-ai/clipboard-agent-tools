@@ -7,14 +7,14 @@ body:
     id: host
     attributes:
       label: Host
-      options: [Claude Code, Codex]
+      options: [Claude Code, Codex, Pi]
     validations:
       required: true
   - type: dropdown
     id: event
     attributes:
       label: Hook event
-      options: [SessionStart, PreToolUse (Bash)]
+      options: [SessionStart, PreToolUse (Bash), Pi session_start (directive), Pi tool_call (bash check)]
     validations:
       required: true
   - type: dropdown

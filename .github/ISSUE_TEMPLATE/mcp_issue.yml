@@ -7,7 +7,7 @@ body:
     id: host
     attributes:
       label: Host
-      options: [Claude Code, Codex]
+      options: [Claude Code, Codex, Pi]
     validations:
       required: true
   - type: dropdown

@@ -1,0 +1,117 @@
+name: npm Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # A tag can point at any commit, including one that never passed CI. Publish only a commit
+      # that is already contained in main.
+      - name: Verify the tagged commit is on main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "Tagged commit ${GITHUB_SHA} is not contained in origin/main; refusing to publish." >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm 11.5.1 or later.
+      - name: Update npm
+        run: npm install -g npm@11.21.0
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Verify the tag matches every manifest version
+        run: ./.github/scripts/check-versions.sh "${GITHUB_REF_NAME}"
+
+      - name: Setup BATS
+        uses: bats-core/bats-action@77d6fb60505b4d0d1d73e48bd035b55074bbfb43 # 4.0.0
+        with:
+          bats-version: 1.14.0
+          support-install: true
+          assert-install: true
+          assert-version: 2.2.4
+          detik-install: false
+          file-install: false
+          support-path: ${{ github.workspace }}/.bats/bats-support
+          assert-path: ${{ github.workspace }}/.bats/bats-assert
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Node unit tests
+        run: npm test
+
+      - name: Install ShellCheck
+        run: |
+          SHELLCHECK_VERSION="v0.11.0"
+          ARCH=$(uname -m)
+          wget -q "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.${ARCH}.tar.xz"
+          tar -xJf "shellcheck-${SHELLCHECK_VERSION}.linux.${ARCH}.tar.xz"
+          sudo mv "shellcheck-${SHELLCHECK_VERSION}/shellcheck" /usr/local/bin/
+          shellcheck --version
+
+      - name: ShellCheck
+        run: |
+          find plugins plugin-tests .github/scripts -type f \
+            \( -name '*.sh' -o -name '*.bats' -o -name '*.bash' \) \
+            -exec shellcheck --shell=bash --format=gcc {} +
+
+      - name: Vendored SDK matches the pinned release
+        run: ./.github/scripts/vendor-mcp-sdk.sh --check
+
+      - name: BATS
+        run: bats -r plugin-tests/
+
+      # A version published by hand (the first one, which trusted publishing cannot create) is
+      # already on the registry when its tag runs this workflow.
+      - name: Check whether the version is already published
+        id: registry
+        run: |
+          NAME=$(jq -r '.name' package.json)
+          VERSION=$(jq -r '.version' package.json)
+          if PUBLISHED=$(npm view "${NAME}@${VERSION}" version 2>npm-view.err); then
+            :
+          elif grep -q 'E404' npm-view.err; then
+            PUBLISHED=""
+          else
+            cat npm-view.err >&2
+            exit 1
+          fi
+          if [[ "${PUBLISHED}" == "${VERSION}" ]]; then
+            echo "${NAME}@${VERSION} is already on the registry; skipping npm publish."
+            echo "published=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "published=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Publish to npm
+        if: steps.registry.outputs.published != 'true'
+        run: npm publish

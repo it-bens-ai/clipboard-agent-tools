@@ -3,6 +3,7 @@
 bats_require_minimum_version 1.11.0
 
 load 'test_helper/common_setup'
+load 'test_helper/server_request'
 
 SERVER="${PLUGIN_DIR}/mcp-server-clipboard/server.sh"
 
@@ -26,16 +27,6 @@ write_backend_stub() {
         printf '#!/usr/bin/env bash\nset -- "%s"\n%s\n' "${CAPTURE_FILE}" "$1" > "${STUB_DIR}/${backend}"
         chmod +x "${STUB_DIR}/${backend}"
     done
-}
-
-# Send one tools/call request to the server and keep its JSON-RPC response.
-# Arguments: tool name, arguments JSON object.
-call_tool() {
-    local request
-    request=$(jq -cn --arg name "$1" --argjson args "$2" \
-        '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:$name,arguments:$args}}')
-    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
-    run --separate-stderr bash -c 'printf "%s\n" "$1" | bash "$2"' _ "${request}" "${SERVER}"
 }
 
 # bats test_tags=success

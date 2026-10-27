@@ -8,16 +8,28 @@ on:
       - 'plugin-tests/**'
       - '.mcp-sdk.lock'
       - '.shellcheckrc'
+      - '.gitignore'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/npm-publish.yml'
       - '.github/scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'eslint.config.mjs'
   pull_request:
     paths:
       - 'plugins/**'
       - 'plugin-tests/**'
       - '.mcp-sdk.lock'
       - '.shellcheckrc'
+      - '.gitignore'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/npm-publish.yml'
       - '.github/scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'eslint.config.mjs'
 
 jobs:
   bash:
@@ -27,8 +39,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # The Node tests run the hook scripts, which need jq.
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Check manifests agree on the version
+        run: ./.github/scripts/check-versions.sh
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Node unit tests
+        run: npm test
 
       - name: Install ShellCheck
         run: |
