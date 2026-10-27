@@ -11,14 +11,20 @@ setup() {
     # Linux/WSL (clip.exe) and Cygwin/MSYS (clip), so a call that reaches the
     # tool writes into a capture file instead of the real clipboard.
     CAPTURE_FILE="${BATS_TEST_TMPDIR}/clipboard_capture"
-    local stub_dir="${BATS_TEST_TMPDIR}/bin"
-    mkdir -p "${stub_dir}"
+    STUB_DIR="${BATS_TEST_TMPDIR}/bin"
+    mkdir -p "${STUB_DIR}"
+    write_backend_stub 'cat > "$1"'
+    PATH="${STUB_DIR}:${PATH}"
+}
+
+# Replace every stubbed backend with a script running the given body.
+# The body receives the capture file path as $1.
+write_backend_stub() {
     local backend
     for backend in pbcopy clip.exe clip; do
-        printf '#!/usr/bin/env bash\ncat > "%s"\n' "${CAPTURE_FILE}" > "${stub_dir}/${backend}"
-        chmod +x "${stub_dir}/${backend}"
+        printf '#!/usr/bin/env bash\nset -- "%s"\n%s\n' "${CAPTURE_FILE}" "$1" > "${STUB_DIR}/${backend}"
+        chmod +x "${STUB_DIR}/${backend}"
     done
-    PATH="${stub_dir}:${PATH}"
 }
 
 # Send one tools/call request to the server and keep its JSON-RPC response.
@@ -41,6 +47,134 @@ call_tool() {
     jq -e '.id == 1 and (.result.isError | not)' <<<"${output}" >/dev/null
     run cmp "${CAPTURE_FILE}" "$f"
     assert_success
+}
+
+# bats test_tags=success,result
+@test "clipboard_copy returns only the copy summary as its result text" {
+    call_tool clipboard_copy '{"text":"hello"}'
+
+    assert_success
+    jq -e '.result.content[0].text | test("^Copied 5 bytes to clipboard via [a-z-]+$")' <<<"${output}" >/dev/null
+}
+
+# bats test_tags=success,result
+@test "clipboard_copy_file returns only the copy summary as its result text" {
+    local f="${BATS_TEST_TMPDIR}/payload.txt"
+    printf 'from disk\n' > "$f"
+
+    call_tool clipboard_copy_file "{\"path\":\"${f}\"}"
+
+    assert_success
+    # The prefix is compared literally, since the path may hold regex metacharacters.
+    jq -e --arg f "$f" '.result.content[0].text | ltrimstr("Copied 10 bytes from \($f) to clipboard via ") | test("^[a-z-]+$")' \
+        <<<"${output}" >/dev/null
+}
+
+# bats test_tags=success,text
+@test "clipboard_copy sends trailing newlines to the backend byte for byte" {
+    printf 'a\n\n' > "${BATS_TEST_TMPDIR}/expected"
+
+    call_tool clipboard_copy '{"text":"a\n\n"}'
+
+    assert_success
+    jq -e '.result.isError | not' <<<"${output}" >/dev/null
+    run cmp "${CAPTURE_FILE}" "${BATS_TEST_TMPDIR}/expected"
+    assert_success
+}
+
+# bats test_tags=success,text
+@test "clipboard_copy copies text made only of newlines and counts each one" {
+    printf '\n\n' > "${BATS_TEST_TMPDIR}/expected"
+
+    call_tool clipboard_copy '{"text":"\n\n"}'
+
+    assert_success
+    jq -e '.result.isError | not' <<<"${output}" >/dev/null
+    jq -e '.result.content[0].text | contains("Copied 2 bytes to clipboard via ")' <<<"${output}" >/dev/null
+    run cmp "${CAPTURE_FILE}" "${BATS_TEST_TMPDIR}/expected"
+    assert_success
+}
+
+# bats test_tags=success,text
+@test "clipboard_copy sends NUL bytes to the backend and counts them" {
+    call_tool clipboard_copy '{"text":"a\u0000b"}'
+
+    assert_success
+    jq -e '.result.content[0].text | test("^Copied 3 bytes to clipboard via [a-z-]+$")' <<<"${output}" >/dev/null
+    run od -An -tx1 "${CAPTURE_FILE}"
+    assert_success
+    [[ "${output//[[:space:]]/}" == "610062" ]] || fail "the backend received: ${output}"
+}
+
+# bats test_tags=success,text
+@test "clipboard_copy copies text made only of a NUL byte" {
+    call_tool clipboard_copy '{"text":"\u0000"}'
+
+    assert_success
+    jq -e '.result.content[0].text | test("^Copied 1 bytes to clipboard via [a-z-]+$")' <<<"${output}" >/dev/null
+    run od -An -tx1 "${CAPTURE_FILE}"
+    assert_success
+    [[ "${output//[[:space:]]/}" == "00" ]] || fail "the backend received: ${output}"
+}
+
+# bats test_tags=success,bytes
+@test "clipboard_copy reports UTF-8 bytes, not characters" {
+    # "é€" is two characters and five bytes in UTF-8. The count comes from
+    # the bytes sent, so it does not depend on the locale the server runs in.
+    call_tool clipboard_copy '{"text":"é€"}'
+
+    assert_success
+    jq -e '.result.content[0].text | test("^Copied 5 bytes to clipboard via [a-z-]+$")' <<<"${output}" >/dev/null
+}
+
+# bats test_tags=success,bytes
+@test "clipboard_copy_file reports UTF-8 bytes and keeps trailing newlines" {
+    local f="${BATS_TEST_TMPDIR}/payload.txt"
+    printf 'é€\n\n' > "$f"
+
+    LC_ALL=en_US.UTF-8 call_tool clipboard_copy_file "{\"path\":\"${f}\"}"
+
+    assert_success
+    jq -e '.result.content[0].text | contains("Copied 7 bytes from ")' <<<"${output}" >/dev/null
+    run cmp "${CAPTURE_FILE}" "$f"
+    assert_success
+}
+
+# bats test_tags=success,stderr
+@test "clipboard_copy leaves a succeeding backend's stderr out of the result" {
+    write_backend_stub 'cat > "$1"; echo "backend-warning-text" >&2'
+
+    call_tool clipboard_copy '{"text":"hello"}'
+
+    assert_success
+    jq -e '.result.isError | not' <<<"${output}" >/dev/null
+    jq -e '.result.content[0].text | contains("backend-warning-text") | not' <<<"${output}" >/dev/null
+}
+
+# bats test_tags=error,stderr
+@test "clipboard_copy returns an error with the backend's stderr and status when the backend fails" {
+    write_backend_stub 'cat > "$1"; echo "backend-failure-text" >&2; exit 3'
+
+    call_tool clipboard_copy '{"text":"hello"}'
+
+    assert_success
+    jq -e '.result.isError == true' <<<"${output}" >/dev/null
+    jq -e '.result.content[0].text | contains("failed with status 3")' <<<"${output}" >/dev/null
+    jq -e '.result.content[0].text | contains("backend-failure-text")' <<<"${output}" >/dev/null
+}
+
+# bats test_tags=error,stderr
+@test "clipboard_copy_file returns an error with the backend's stderr and status when the backend fails" {
+    local f="${BATS_TEST_TMPDIR}/payload.txt"
+    printf 'from disk\n' > "$f"
+    write_backend_stub 'cat > "$1"; echo "backend-failure-text" >&2; exit 3'
+
+    call_tool clipboard_copy_file "{\"path\":\"${f}\"}"
+
+    assert_success
+    jq -e '.result.isError == true' <<<"${output}" >/dev/null
+    jq -e '.result.content[0].text | contains("failed with status 3")' <<<"${output}" >/dev/null
+    jq -e '.result.content[0].text | contains("backend-failure-text")' <<<"${output}" >/dev/null
 }
 
 # bats test_tags=validate,relative

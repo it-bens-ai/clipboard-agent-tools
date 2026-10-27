@@ -19,6 +19,13 @@
 - The absolute-path check in `tool_clipboard_copy_file`; the `pattern` in `tools.json` covers it.
 - The `instructions` field in `mcp-server-clipboard/config.json`. The core never sent it in the `initialize` response.
 
+### Fixed
+
+- `clipboard_copy` dropped trailing newlines and NUL bytes from `text`, and treated text made only of newlines as empty. A NUL byte also put a bash `ignored null byte` warning into the result. The text now reaches the backend byte for byte, NUL bytes and trailing newlines included, and text made only of newlines or NUL bytes is copied. A missing `text` or `""` is still an error.
+- `clipboard_copy` reported the character count as bytes, so `"é€"` gave `Copied 2 bytes` under a UTF-8 locale. It now counts the bytes sent to the backend, `Copied 5 bytes` for that text, in any locale.
+- A backend's stderr no longer appears in a successful tool result. The server drops it when the backend exits 0. When the backend exits non-zero, both tools return an error result that names the exit status and carries the backend's stderr.
+- Every successful tool result started with the tool's own log line, such as `[…] [INFO] clipboard_copy: backend=pbcopy bytes=2`. The regression came from logging to stderr: the core merges a tool's stderr into its result, so tool log lines appeared in every successful result. `tool_clipboard_copy` and `tool_clipboard_copy_file` no longer log. The server's startup log lines are unchanged.
+
 ## [1.3.0] - 2026-08-21
 
 ### Added

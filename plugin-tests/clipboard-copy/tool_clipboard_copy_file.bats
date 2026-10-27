@@ -4,8 +4,6 @@
 load 'test_helper/common_setup'
 
 setup() {
-    # Source the lib with a no-op log shim (real log is in mcpserver_core.sh).
-    log() { :; }
     source "${LIB_DIR}/clipboard.sh"
 
     # Capture-mode stub for the dispatcher: write stdin to a tempfile so
@@ -17,6 +15,11 @@ setup() {
     # Pin the detected backend so the success message is predictable
     # regardless of host environment.
     _clipboard_detect_backend() { printf 'pbcopy\n'; }
+
+    # tool_clipboard_copy stages its text in the per-call directory the MCP
+    # core exports.
+    export MCP_CALL_TMPDIR="${BATS_TEST_TMPDIR}/call"
+    mkdir -p "${MCP_CALL_TMPDIR}"
 }
 
 # =============================================================================
