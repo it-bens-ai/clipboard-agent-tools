@@ -44,4 +44,4 @@
 
 ## Post-Step-6
 
-After editing a `.sh` file, run `shellcheck --shell=bash` on it when ShellCheck is installed, then run `.bats/bats-core/bin/bats -r plugin-tests/`. No CI catches either step.
+After editing a `.sh` file, run `shellcheck --shell=bash` on it when ShellCheck is installed, then run `.bats/bats-core/bin/bats -r plugin-tests/`. CI runs ShellCheck over `plugins`, `plugin-tests`, and `.github/scripts`, then the SDK pin check and BATS on pushes to `main` or pull requests when paths in `.github/workflows/ci.yml` match.

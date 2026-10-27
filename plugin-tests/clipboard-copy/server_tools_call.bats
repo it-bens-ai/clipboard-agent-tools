@@ -13,6 +13,7 @@ setup() {
     CAPTURE_FILE="${BATS_TEST_TMPDIR}/clipboard_capture"
     STUB_DIR="${BATS_TEST_TMPDIR}/bin"
     mkdir -p "${STUB_DIR}"
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     write_backend_stub 'cat > "$1"'
     PATH="${STUB_DIR}:${PATH}"
 }
@@ -33,6 +34,7 @@ call_tool() {
     local request
     request=$(jq -cn --arg name "$1" --argjson args "$2" \
         '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:$name,arguments:$args}}')
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     run --separate-stderr bash -c 'printf "%s\n" "$1" | bash "$2"' _ "${request}" "${SERVER}"
 }
 
@@ -142,6 +144,7 @@ call_tool() {
 
 # bats test_tags=success,stderr
 @test "clipboard_copy leaves a succeeding backend's stderr out of the result" {
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     write_backend_stub 'cat > "$1"; echo "backend-warning-text" >&2'
 
     call_tool clipboard_copy '{"text":"hello"}'
@@ -153,6 +156,7 @@ call_tool() {
 
 # bats test_tags=error,stderr
 @test "clipboard_copy returns an error with the backend's stderr and status when the backend fails" {
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     write_backend_stub 'cat > "$1"; echo "backend-failure-text" >&2; exit 3'
 
     call_tool clipboard_copy '{"text":"hello"}'
@@ -167,6 +171,7 @@ call_tool() {
 @test "clipboard_copy_file returns an error with the backend's stderr and status when the backend fails" {
     local f="${BATS_TEST_TMPDIR}/payload.txt"
     printf 'from disk\n' > "$f"
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     write_backend_stub 'cat > "$1"; echo "backend-failure-text" >&2; exit 3'
 
     call_tool clipboard_copy_file "{\"path\":\"${f}\"}"

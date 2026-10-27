@@ -18,6 +18,7 @@ setup() {
     mkdir -p "${bin}"
     ln -s "$(command -v rm)" "${bin}/rm"
 
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     run --separate-stderr bash -c 'PATH="$1"; source "$2"; printf "hello" | _clipboard_send_stdin osc52' \
         _ "${bin}" "${LIB_DIR}/clipboard.sh"
 
@@ -81,6 +82,7 @@ setup() {
     chmod +x "${bin}/base64"
     ln -s "$(command -v tr)" "${bin}/tr"
 
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     run --separate-stderr bash -c 'PATH="$1"; source "$2"; printf "hello" | _clipboard_b64' \
         _ "${bin}" "${LIB_DIR}/clipboard.sh"
 
@@ -95,6 +97,7 @@ setup() {
     printf '#!/bin/sh\nexit 1\n' > "${bin}/openssl"
     chmod +x "${bin}/openssl"
 
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     run --separate-stderr bash -c 'PATH="$1"; source "$2"; printf "hello" | _clipboard_b64' \
         _ "${bin}" "${LIB_DIR}/clipboard.sh"
 

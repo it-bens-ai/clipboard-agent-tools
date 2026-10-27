@@ -26,6 +26,7 @@ INITIALIZE_REQUEST='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"pro
 }
 
 @test "Codex MCP launcher initializes from its declared cwd" {
+    # shellcheck disable=SC2016  # Pass literal positional parameters to the child shell.
     run --separate-stderr bash -c '
         cd "$1"
         printf "%s\n" "$2" | bash ./mcp-server-clipboard/server.sh

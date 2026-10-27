@@ -1,0 +1,6 @@
+source-path=SCRIPTDIR
+external-sources=true
+# SC1091: runtime-computed paths to the SDK and plugin libraries cannot be resolved statically.
+# SC2034: BATS helper variables are read by suites that load them at runtime.
+# SC2329: BATS setup functions and test stubs are called indirectly.
+disable=SC1091,SC2034,SC2329
