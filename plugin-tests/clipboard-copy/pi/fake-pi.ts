@@ -14,9 +14,9 @@ function noop(): void {
 }
 
 /**
- * Registers `extension` on a fake pi that records every event handler and MCP server
- * registration instead of running them.
- */
+Registers `extension` on a fake pi that records every event handler and MCP server
+registration instead of running them.
+*/
 export function registerOnFakePi(extension: (pi: ExtensionAPI) => void): FakePi {
   const handlers = new Map<string, Handler>();
   const servers = new Map<string, FakeMcpServerConfig>();

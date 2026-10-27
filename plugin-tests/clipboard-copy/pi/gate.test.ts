@@ -25,9 +25,9 @@ function isProcessAlive(pid: number): boolean {
 }
 
 /**
- * A kill function that throws an error with `code` instead of signalling, and kills the real process
- * group after the test so the script it failed to stop does not outlive it.
- */
+A kill function that throws an error with `code` instead of signalling, and kills the real process
+group after the test so the script it failed to stop does not outlive it.
+*/
 function failingKill(t: TestContext, code: string): (pid: number) => void {
   const groups: number[] = [];
   t.after(() => {
