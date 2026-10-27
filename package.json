@@ -43,6 +43,6 @@
     "eslint-plugin-sonarjs": "4.2.2",
     "eslint-plugin-unicorn": "78.0.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.72.0"
+    "typescript-eslint": "8.72.1"
   }
 }
