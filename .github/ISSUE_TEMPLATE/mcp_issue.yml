@@ -1,0 +1,60 @@
+name: MCP server issue
+description: Report a problem with clipboard-copy MCP tools.
+title: "[MCP] "
+labels: [mcp]
+body:
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options: [Claude Code, Codex]
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: MCP tool
+      options: [clipboard_copy, clipboard_copy_file]
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Clipboard backend
+      options: [pbcopy, wl-copy, xclip, xsel, clip.exe, clip, OSC 52, Unknown]
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Tool arguments
+      description: Remove any private clipboard content before posting.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result and server stderr
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+  - type: input
+    id: os
+    attributes:
+      label: Operating system

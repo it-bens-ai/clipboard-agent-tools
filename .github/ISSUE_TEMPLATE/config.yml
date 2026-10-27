@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Plugin documentation
+    url: https://github.com/it-bens-ai/clipboard-agent-tools/tree/main/plugins/clipboard-copy
+    about: Read the plugin usage and installation instructions.

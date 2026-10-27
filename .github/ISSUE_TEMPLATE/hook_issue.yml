@@ -1,0 +1,59 @@
+name: Hook issue
+description: Report a problem with clipboard-copy hooks.
+title: "[HOOK] "
+labels: [hook]
+body:
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options: [Claude Code, Codex]
+    validations:
+      required: true
+  - type: dropdown
+    id: event
+    attributes:
+      label: Hook event
+      options: [SessionStart, PreToolUse (Bash)]
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Clipboard backend
+      options: [pbcopy, wl-copy, xclip, xsel, clip.exe, clip, OSC 52, Unknown]
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Command or session input
+      description: Remove private content before posting.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual exit status and output
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
