@@ -39,6 +39,11 @@ _clipboard_detect_backend() {
 # BSD/macOS base64 (no -w but emits a single line for small input — strip newlines),
 # and falls back to openssl when base64 is missing.
 _clipboard_b64() {
+    # The server already runs with pipefail. Setting it here, scoped to this
+    # function by `local -`, keeps a failing base64 from yielding tr's status
+    # when this file is sourced on its own.
+    local -
+    set -o pipefail
     if command -v base64 >/dev/null 2>&1; then
         if base64 -w 0 </dev/null >/dev/null 2>&1; then
             base64 -w 0
@@ -57,7 +62,7 @@ _clipboard_b64() {
 # For OSC 52, buffers stdin, base64-encodes, and writes the escape sequence
 # to /dev/tty (not stdout) so it stays out of the MCP JSON-RPC channel.
 # Wraps the sequence in a tmux DCS pass-through when $TMUX is set.
-_clipboard_send_stdin() {
+_clipboard_write_backend() {
     local backend="$1"
     case "${backend}" in
         pbcopy)   pbcopy ;;
@@ -84,26 +89,81 @@ _clipboard_send_stdin() {
     esac
 }
 
+# Send stdin to the given backend with the backend's stderr kept out of the
+# tool result. On success the stderr is dropped unread; on failure it is
+# echoed with the exit status and the function returns 1.
+# Needs MCP_CALL_TMPDIR, the per-call directory the MCP core exports.
+_clipboard_send_stdin() {
+    local backend="$1"
+
+    if [[ -z "${MCP_CALL_TMPDIR:-}" ]]; then
+        echo "Error: MCP_CALL_TMPDIR is not set; cannot capture the ${backend} backend's stderr"
+        return 1
+    fi
+
+    # A file, not a command substitution: xclip and wl-copy fork a child that
+    # keeps stderr open, so reading stderr through a pipe would block until
+    # that child exits.
+    local stderr_file="${MCP_CALL_TMPDIR}/backend-stderr"
+    local status=0
+    _clipboard_write_backend "${backend}" 2>"${stderr_file}" || status=$?
+
+    # No cleanup: the core removes MCP_CALL_TMPDIR when the call ends.
+    if [[ ${status} -eq 0 ]]; then
+        return 0
+    fi
+
+    local stderr_text
+    if ! stderr_text=$(<"${stderr_file}"); then
+        echo "Error: backend ${backend} failed with status ${status}, and its stderr cannot be read from ${stderr_file}"
+        return 1
+    fi
+    echo "Error: backend ${backend} failed with status ${status}${stderr_text:+: ${stderr_text}}"
+    return 1
+}
+
 # Copy text to the system clipboard using the auto-detected backend.
 # Args: $1 = JSON arguments object with required '.text'
 tool_clipboard_copy() {
     local args="$1"
 
-    local text
-    text=$(echo "${args}" | jq -r '.text // empty')
-
-    if [[ -z "${text}" ]]; then
+    # jq -e exits 1 when the test is false and above 1 when jq itself fails.
+    local check_status=0
+    jq -e '(.text | type) == "string" and (.text | length) > 0' <<<"${args}" >/dev/null || check_status=$?
+    if [[ ${check_status} -eq 1 ]]; then
         echo "Error: text is required and must be a non-empty string"
         return 1
     fi
+    if [[ ${check_status} -ne 0 ]]; then
+        echo "Error: cannot read text from the arguments: jq exited with status ${check_status}"
+        return 1
+    fi
 
-    local backend
+    if [[ -z "${MCP_CALL_TMPDIR:-}" ]]; then
+        echo "Error: MCP_CALL_TMPDIR is not set; cannot stage the text for the backend"
+        return 1
+    fi
+
+    # jq -j writes the string's bytes unchanged, NUL bytes and trailing
+    # newlines included, which a bash variable cannot hold. Staging them in a
+    # file rather than piping them stops a failed jq before the backend runs.
+    local text_file="${MCP_CALL_TMPDIR}/text"
+    if ! jq -j '.text' <<<"${args}" >"${text_file}"; then
+        echo "Error: cannot extract the text into ${text_file}"
+        return 1
+    fi
+
+    local backend bytes
     backend=$(_clipboard_detect_backend)
+    if ! bytes=$(wc -c <"${text_file}"); then
+        echo "Error: cannot count the bytes in ${text_file}"
+        return 1
+    fi
+    # wc pads the count differently across platforms.
+    bytes="${bytes//[[:space:]]/}"
 
-    log "INFO" "clipboard_copy: backend=${backend} bytes=${#text}"
-
-    printf '%s' "${text}" | _clipboard_send_stdin "${backend}" || return 1
-    echo "Copied ${#text} bytes to clipboard via ${backend}"
+    _clipboard_send_stdin "${backend}" <"${text_file}" || return 1
+    echo "Copied ${bytes} bytes to clipboard via ${backend}"
 }
 
 # Copy the contents of a file at an absolute path to the system clipboard.
@@ -134,8 +194,6 @@ tool_clipboard_copy_file() {
     local backend size
     backend=$(_clipboard_detect_backend)
     size=$(wc -c < "${path}" | tr -d ' ')
-
-    log "INFO" "clipboard_copy_file: backend=${backend} path=${path} bytes=${size}"
 
     _clipboard_send_stdin "${backend}" < "${path}" || return 1
     echo "Copied ${size} bytes from ${path} to clipboard via ${backend}"
