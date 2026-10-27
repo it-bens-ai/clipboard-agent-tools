@@ -132,6 +132,13 @@ If your terminal does not honor OSC 52 the copy will silently no-op as far as th
   - WSL: `clip.exe` (preinstalled on Windows)
   - Cygwin/MSYS: `clip`
 
+## Troubleshooting
+
+- **Server not starting:** Run `bash --version` and `jq --version` in the host's environment. The first `bash` on `PATH` must be 5.1 or newer and `jq` must be 1.7 or newer; stock macOS `/bin/bash` is 3.2. Check the MCP host's stderr for server startup logs. The server sets `MCP_LOG_STDERR=1`; it does not write a plugin-local `server.log`.
+- **Tools missing after installation:** Restart Claude Code or start a new Codex task. In Claude Code, inspect the server with `/mcp`.
+- **Codex hook not blocking clipboard commands:** Open `/hooks` in Codex and trust the bundled hooks; untrusted plugin hooks do not run.
+- **OSC 52 reports success but nothing is copied:** The terminal must support and permit OSC 52. The server writes to `/dev/tty` and wraps the sequence for tmux when `TMUX` is set, but it cannot detect whether the terminal accepted it.
+
 ## Layout
 
 ```

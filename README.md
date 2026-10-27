@@ -2,6 +2,7 @@
 
 [![bash 5.1+](https://img.shields.io/badge/bash-5.1%2B-4EAA25?logo=gnubash&logoColor=white)](./plugins/clipboard-copy/README.md#requirements)
 [![jq 1.7+](https://img.shields.io/badge/jq-1.7%2B-0E5E8E)](./plugins/clipboard-copy/README.md#requirements)
+[![CI](https://github.com/it-bens-ai/clipboard-agent-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/it-bens-ai/clipboard-agent-tools/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/it-bens-ai/clipboard-agent-tools)](./LICENSE)
 
 [![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-D97757)](#claude-code)
@@ -10,6 +11,12 @@
 A marketplace repository for clipboard tools that AI coding agents call as MCP tools.
 
 The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server exposing `clipboard_copy` (inline text) and `clipboard_copy_file` (contents of a file at an absolute path). It picks the clipboard backend for the current environment — `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel` on Linux, `clip.exe` on WSL, `clip` on Cygwin/MSYS — and falls back to OSC 52 escape sequences over SSH and in headless environments. Shared Claude Code and Codex hooks name the MCP tools at session start and block native clipboard-write Bash commands.
+
+## Components
+
+| Plugin | MCP server | Hooks |
+|---|---|---|
+| [`clipboard-copy`](./plugins/clipboard-copy/) | `clipboard_copy` and `clipboard_copy_file` | SessionStart directive and PreToolUse Bash clipboard-write block |
 
 ## Requirements
 
@@ -27,7 +34,7 @@ The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server 
 /plugin install clipboard-copy@clipboard-agent-tools
 ```
 
-Restart Claude Code after installation so the MCP server is registered.
+Restart Claude Code after installation so the MCP server is registered. Run `/mcp` in the new session and check that the clipboard-copy server and its two tools appear.
 
 ### Codex
 
