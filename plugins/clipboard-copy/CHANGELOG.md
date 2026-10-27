@@ -21,6 +21,7 @@
 
 ### Fixed
 
+- The server now fails at startup when `tools.json` is missing, invalid JSON, or not exactly one JSON object containing a `tools` array.
 - `clipboard_copy` dropped trailing newlines and NUL bytes from `text`, and treated text made only of newlines as empty. A NUL byte also put a bash `ignored null byte` warning into the result. The text now reaches the backend byte for byte, NUL bytes and trailing newlines included, and text made only of newlines or NUL bytes is copied. A missing `text` or `""` is still an error.
 - `clipboard_copy` reported the character count as bytes, so `"é€"` gave `Copied 2 bytes` under a UTF-8 locale. It now counts the bytes sent to the backend, `Copied 5 bytes` for that text, in any locale.
 - A backend's stderr no longer appears in a successful tool result. The server drops it when the backend exits 0. When the backend exits non-zero, both tools return an error result that names the exit status and carries the backend's stderr.

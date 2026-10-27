@@ -21,6 +21,13 @@ source "${SCRIPT_DIR}/lib/clipboard.sh"
 
 trap 'log "ERROR" "Unexpected error on line ${LINENO}"' ERR
 
+if ! jq -e -s 'length == 1 and (.[0] | type) == "object" and (.[0].tools | type) == "array"' \
+    -- "${MCP_TOOLS_LIST_FILE}" >/dev/null 2>&1; then
+    log "ERROR" "Tools list is missing or invalid: ${MCP_TOOLS_LIST_FILE}"
+    printf 'Error: tools list is missing or invalid: %s\n' "${MCP_TOOLS_LIST_FILE}" >&2
+    exit 1
+fi
+
 log "INFO" "======================================"
 log "INFO" "Clipboard MCP Server starting"
 log "INFO" "Script dir: ${SCRIPT_DIR}"

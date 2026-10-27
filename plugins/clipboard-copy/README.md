@@ -56,6 +56,8 @@ The path must be absolute, point to an existing regular file, and be readable. O
 
 The server checks each call's arguments against the tool's `inputSchema` in `mcp-server-clipboard/tools.json` before the tool runs. A path that does not start with `/`, a value of the wrong type, or an argument the tables above do not list returns an error result, and nothing is copied.
 
+The server exits non-zero before reading requests if `tools.json` is missing, invalid JSON, or not exactly one JSON object containing a `tools` array. Check the MCP host's stderr for the error.
+
 Both tool descriptions carry the no-echo rule described under [SessionStart Hook](#sessionstart-hook), so it applies even on a host that registers the MCP server without the plugin's hooks.
 
 ## Backend Detection

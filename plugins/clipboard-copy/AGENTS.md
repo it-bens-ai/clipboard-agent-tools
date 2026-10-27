@@ -111,7 +111,7 @@ Sources `lib/common.sh`, calls `parse_hook_input`, then runs a series of grep -E
 ## MCP Wire Flow
 
 1. Claude Code spawns `mcp-server-clipboard/server.sh` per `.mcp.json`; Codex spawns the same server through `.codex-plugin/plugin.json`.
-2. `server.sh` exports `MCP_CONFIG_FILE`, `MCP_TOOLS_LIST_FILE`, `MCP_LOG_STDERR=1`, sources `mcpserver_core.sh` + `lib/clipboard.sh`, then calls `run_mcp_server`.
+2. `server.sh` exports `MCP_CONFIG_FILE`, `MCP_TOOLS_LIST_FILE`, `MCP_LOG_STDERR=1`, and sources `mcpserver_core.sh` + `lib/clipboard.sh`. Before `run_mcp_server`, it requires `tools.json` to contain exactly one JSON object with a `tools` array; a missing or invalid list exits non-zero and prints an error to stderr.
 3. The loop reads JSON-RPC requests one per line on stdin and writes responses on stdout. Log lines go to stderr; a `MCP_LOG_FILE` set in the host environment also receives them. The core merges a tool call's stderr into the tool result, so the tool functions and the helpers they call do not log.
 4. `tools/call clipboard_copy` → `tool_clipboard_copy` → `_clipboard_send_stdin <backend>` → `_clipboard_write_backend <backend>` → backend utility or OSC 52 escape to `/dev/tty`.
 
@@ -148,6 +148,7 @@ Files:
 - `check_clipboard.bats` — block/allow matrix for the PreToolUse hook (pbcopy/wl-copy/clip/clip.exe/xclip/xsel × direct/piped/chained, plus paste-mode and false-positive guards).
 - `detect_backend.bats` — `_clipboard_detect_backend` cascade across OS × installed-utility × WAYLAND_DISPLAY/DISPLAY combinations.
 - `tool_clipboard_copy_file.bats` — every path-validation branch in the function (missing/empty/nonexistent/directory/unreadable) plus byte-exact dispatcher capture for the success path. Smoke-checks `tool_clipboard_copy` text validation too.
+- `server_startup_tools_list.bats` — checks startup rejects missing, invalid, multi-document, and wrongly shaped tool lists before answering requests.
 - `server_tools_call.bats` — drives `server.sh` with JSON-RPC `tools/call` requests: schema refusals (relative path, undeclared argument, wrong type) return `isError` without running the tool, and an absolute path reaches a stubbed backend. Also covers a result text holding only the copy summary for both tools, trailing-newline, newline-only, NUL-containing and NUL-only text reaching the backend byte for byte, UTF-8 byte counts for both tools, a succeeding backend's stderr kept out of the result, and a failing backend's status and stderr returned as `isError`.
 - `send_stdin.bats` — `_clipboard_send_stdin` and `_clipboard_b64` on their own: the OSC 52 branch's encoder error comes back as a failure with its message, an unreadable stderr capture fails a call only when the backend failed, a call without `MCP_CALL_TMPDIR` is refused before the backend runs, and a failing `base64` or `openssl` fails the encoder.
 - `plugin_launch.bats` — Codex MCP launcher shape and its `initialize` from the declared cwd, and the hook launchers in `hooks/hooks.json`: they resolve the plugin root from `PLUGIN_ROOT` or `CLAUDE_PLUGIN_ROOT` only, and fail when the host sets neither.
