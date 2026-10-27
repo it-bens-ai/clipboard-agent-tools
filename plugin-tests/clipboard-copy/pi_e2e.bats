@@ -53,11 +53,13 @@ install_git_layout() {
 }
 
 # Reproduces offline what `pi install npm:…` runs: npm install of the tarball
-# under a prefix.
+# under a prefix. `npm pack --json` prints an array of packed packages before
+# npm 12 and an object keyed by package name from npm 12 on; `.[]` reads both.
 install_npm_layout() {
     local pack_dir="${BATS_FILE_TMPDIR}/npm-pack" prefix="${BATS_FILE_TMPDIR}/npm-prefix" tarball
     mkdir -p "${pack_dir}" "${prefix}"
-    tarball=$(cd "${REPO_ROOT}" && npm pack --json --pack-destination "${pack_dir}" | jq -er '.[0].filename')
+    tarball=$(cd "${REPO_ROOT}" && npm pack --json --pack-destination "${pack_dir}" |
+        jq -er '[.[]] | if length == 1 then .[0].filename else error("expected one packed package, got \(length)") end')
     npm install "${pack_dir}/${tarball}" --prefix "${prefix}" --legacy-peer-deps --offline --no-audit --no-fund
 }
 
