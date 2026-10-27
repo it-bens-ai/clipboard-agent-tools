@@ -1,14 +1,45 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "enabledManagers": ["npm", "custom.regex"],
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
+  "enabledManagers": ["npm", "github-actions", "custom.regex"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["every weekend"],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  },
   "packageRules": [
     {
+      "description": "Bundle every non-major update into one weekend PR",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
+      "groupName": "all non-major"
+    },
+    {
+      "description": "Major updates get one PR per dependency",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major-update"]
+    },
+    {
+      "description": "Pi has shipped breaking changes in 1.x minor and patch releases, so Pi updates stay out of the non-major bundle, with minors and patches in separate PRs",
       "matchManagers": ["npm"],
       "matchDepTypes": ["devDependencies"],
       "matchPackageNames": ["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai"],
       "groupName": "pi packages",
-      "rangeStrategy": "pin"
+      "rangeStrategy": "pin",
+      "separateMinorPatch": true
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": ["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai"],
+      "matchUpdateTypes": ["minor"],
+      "addLabels": ["breaking"]
+    },
+    {
+      "description": "bash-mcp-sdk bumps need a re-vendor with vendor-mcp-sdk.sh and a new sha256 in .mcp-sdk.lock, so they get their own PR",
+      "matchDepNames": ["shopwareLabs/bash-mcp-sdk"],
+      "groupName": "bash-mcp-sdk"
     },
     {
       "description": "typescript-eslint supports typescript only below 6.1.0; lift this once it supports 7.",
@@ -25,6 +56,59 @@
       "depNameTemplate": "shopwareLabs/bash-mcp-sdk",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "ShellCheck release installed by the workflows",
+      "managerFilePatterns": ["/^\\.github/workflows/(ci|npm-publish)\\.yml$/"],
+      "matchStrings": ["SHELLCHECK_VERSION=\"(?<currentValue>v[0-9.]+)\""],
+      "depNameTemplate": "koalaman/shellcheck",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "description": "bats-core version passed to bats-action in the workflows",
+      "managerFilePatterns": ["/^\\.github/workflows/(ci|npm-publish)\\.yml$/"],
+      "matchStrings": ["bats-version: (?<currentValue>[0-9.]+)"],
+      "depNameTemplate": "bats-core/bats-core",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "bats-assert version passed to bats-action in the workflows",
+      "managerFilePatterns": ["/^\\.github/workflows/(ci|npm-publish)\\.yml$/"],
+      "matchStrings": ["assert-version: (?<currentValue>[0-9.]+)"],
+      "depNameTemplate": "bats-core/bats-assert",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "bats-core version pinned in setup-bats.sh",
+      "managerFilePatterns": ["/^\\.github/scripts/setup-bats\\.sh$/"],
+      "matchStrings": ["BATS_VERSION=\"(?<currentValue>[0-9.]+)\""],
+      "depNameTemplate": "bats-core/bats-core",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "bats-support version pinned in setup-bats.sh",
+      "managerFilePatterns": ["/^\\.github/scripts/setup-bats\\.sh$/"],
+      "matchStrings": ["BATS_SUPPORT_VERSION=\"(?<currentValue>[0-9.]+)\""],
+      "depNameTemplate": "bats-core/bats-support",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "bats-assert version pinned in setup-bats.sh",
+      "managerFilePatterns": ["/^\\.github/scripts/setup-bats\\.sh$/"],
+      "matchStrings": ["BATS_ASSERT_VERSION=\"(?<currentValue>[0-9.]+)\""],
+      "depNameTemplate": "bats-core/bats-assert",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
 }
