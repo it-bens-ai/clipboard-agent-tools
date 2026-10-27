@@ -4,8 +4,6 @@ bats_require_minimum_version 1.11.0
 
 load 'test_helper/common_setup'
 
-SESSION_SCRIPT="${REPO_ROOT}/plugins/clipboard-copy/hooks/scripts/session-start.sh"
-
 run_session_start() {
     run bash -c 'echo "{}" | bash "$1"' _ "$SESSION_SCRIPT"
 }

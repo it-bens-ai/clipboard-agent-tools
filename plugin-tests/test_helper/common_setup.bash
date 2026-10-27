@@ -19,7 +19,7 @@ load "${REPO_ROOT}/.bats/bats-assert/load"
 # Create JSON input for hook scripts
 make_hook_input() {
     local command="$1"
-    printf '{"tool_input": {"command": "%s"}}' "$command"
+    jq -cn --arg cmd "$command" '{tool_input: {command: $cmd}}'
 }
 
 # Run a hook script with a command and capture output
@@ -32,6 +32,15 @@ run_hook() {
         fail "SCRIPTS_DIR must be set before calling run_hook"
     fi
 
-    run bash -c 'printf '"'"'{"tool_input": {"command": "%s"}}'"'"' "$1" | bash "$2"' \
-        _ "$command" "${SCRIPTS_DIR}/${script}"
+    local payload
+    payload=$(make_hook_input "$command")
+    run bash -c 'printf "%s" "$1" | bash "$2"' _ "$payload" "${SCRIPTS_DIR}/${script}"
+}
+
+# Assert the hook rejects a clipboard write and suggests the expected MCP tool.
+assert_hook_blocks() {
+    local script="$1" command="$2" suggestion="$3"
+    run_hook "$script" "$command"
+    assert_failure 2
+    assert_output --partial "$suggestion"
 }

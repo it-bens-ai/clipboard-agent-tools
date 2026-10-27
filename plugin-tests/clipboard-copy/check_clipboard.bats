@@ -11,16 +11,17 @@ SCRIPT="check-clipboard.sh"
 
 # bats test_tags=block,pbcopy
 @test "blocks pbcopy with stdin redirect" {
-    run_hook "$SCRIPT" "pbcopy < file.txt"
-    assert_failure 2
-    assert_output --partial "clipboard_copy MCP tool"
+    assert_hook_blocks "$SCRIPT" "pbcopy < file.txt" "clipboard_copy MCP tool"
 }
 
 # bats test_tags=block,pbcopy
 @test "blocks pbcopy piped from another command" {
-    run_hook "$SCRIPT" "echo hi | pbcopy"
-    assert_failure 2
-    assert_output --partial "clipboard_copy"
+    assert_hook_blocks "$SCRIPT" "echo hi | pbcopy" "clipboard_copy"
+}
+
+# bats test_tags=block,pbcopy
+@test "blocks pbcopy with a quoted argument" {
+    assert_hook_blocks "$SCRIPT" 'pbcopy < "quoted file.txt"' "clipboard_copy"
 }
 
 # bats test_tags=block,pbcopy
@@ -37,9 +38,7 @@ SCRIPT="check-clipboard.sh"
 
 # bats test_tags=block,wl-copy
 @test "blocks wl-copy piped" {
-    run_hook "$SCRIPT" "echo hi | wl-copy"
-    assert_failure 2
-    assert_output --partial "clipboard_copy"
+    assert_hook_blocks "$SCRIPT" "echo hi | wl-copy" "clipboard_copy"
 }
 
 # bats test_tags=block,clip
@@ -127,6 +126,12 @@ SCRIPT="check-clipboard.sh"
 # bats test_tags=allow,unrelated
 @test "allows unrelated git command" {
     run_hook "$SCRIPT" "git status"
+    assert_success
+}
+
+# bats test_tags=allow,unrelated
+@test "allows unrelated command with a quoted argument" {
+    run_hook "$SCRIPT" 'printf "%s" "quoted value"'
     assert_success
 }
 
