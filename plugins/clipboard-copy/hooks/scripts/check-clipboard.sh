@@ -44,24 +44,26 @@ if echo "$COMMAND" | grep -qE '(^|;|&&|\|)\s*clip(\s|$)'; then
     block_clipboard "clipboard_copy" "$HINT"
 fi
 
-# xclip — defaults to writing the PRIMARY/clipboard selection from stdin.
-# Allow only when -o or -out is present (paste mode). [^|;&]* keeps the
-# search within this command segment so a later 'xsel -o' can't excuse
-# an earlier 'xclip -i'.
-if echo "$COMMAND" | grep -qE '(^|;|&&|\|)\s*xclip(\s|$)'; then
-    if ! echo "$COMMAND" | grep -qE 'xclip[^|;&]*\s-o(ut)?(\s|$)'; then
-        block_clipboard "clipboard_copy" \
-            "$HINT (xclip -o / -out for paste is allowed.)"
-    fi
-fi
+# Each xclip or xsel segment must have its own paste flag.
+check_paste_segments() {
+    local tool="$1" paste_pattern="$2" hint="$3"
+    local remaining segment_pattern segment
+    segment_pattern="(^|;|&&|\|)[[:space:]]*${tool}([[:space:]]|$)[^|;&]*"
 
-# xsel — defaults to writing PRIMARY from stdin.
-# Allow only when -o or --output is present (paste mode).
-if echo "$COMMAND" | grep -qE '(^|;|&&|\|)\s*xsel(\s|$)'; then
-    if ! echo "$COMMAND" | grep -qE 'xsel[^|;&]*\s(-o|--output)(\s|$)'; then
-        block_clipboard "clipboard_copy" \
-            "$HINT (xsel -o / --output for paste is allowed.)"
-    fi
-fi
+    while IFS= read -r remaining; do
+        while [[ "$remaining" =~ $segment_pattern ]]; do
+            segment="${BASH_REMATCH[0]}"
+            remaining="${remaining#*"$segment"}"
+            if [[ ! "$segment" =~ $paste_pattern ]]; then
+                block_clipboard "clipboard_copy" "$HINT $hint"
+            fi
+        done
+    done <<< "$COMMAND"
+}
+
+check_paste_segments "xclip" 'xclip[^|;&]*[[:space:]]-o(ut)?([[:space:]]|$)' \
+    '(xclip -o / -out for paste is allowed.)'
+check_paste_segments "xsel" 'xsel[^|;&]*[[:space:]](-o|--output)([[:space:]]|$)' \
+    '(xsel -o / --output for paste is allowed.)'
 
 exit 0

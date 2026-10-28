@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- A paste-mode `xclip` or `xsel` call could let other calls of the same tool in the same command through (for example, `xclip -i < f; xclip -o`); now each call is checked on its own. A paste flag directly followed by `;`, as in `xclip -o; xsel -o`, no longer blocks the command.
+
 ## [2.0.0] - 2026-10-28
 
 ### Added
