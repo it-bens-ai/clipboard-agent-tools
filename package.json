@@ -35,7 +35,7 @@
     "@earendil-works/pi-ai": "1.4.0",
     "@earendil-works/pi-coding-agent": "1.4.0",
     "@eslint/js": "10.0.1",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.5",
     "eslint": "10.13.0",
     "eslint-plugin-n": "18.5.0",
     "eslint-plugin-perfectionist": "5.13.0",
