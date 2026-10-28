@@ -1,16 +1,16 @@
 # Clipboard Agent Tools — Agent Guide
 
-Human-facing documentation is in `README.md` and `docs/`. This file routes tasks to files and lists the rules for working in the repository.
+This file routes tasks to files and lists the rules for working in the repository.
 
 ## Documentation
 
 | Topic | File |
 |---|---|
-| Pitch, requirements, per-host install commands | `README.md` |
-| Hosts, repository layout, vendored MCP SDK, test commands, CI, local validation | `docs/development.md` |
-| Version bumps, pre-release checklist, npm publishing | `docs/releasing.md` |
-| Plugin work: task-to-file navigation and editing rules | `plugins/clipboard-copy/AGENTS.md` |
-| Plugin behavior: tools, backends, hooks, Pi, architecture, tests | `plugins/clipboard-copy/README.md` and `plugins/clipboard-copy/docs/` |
+| Pitch, requirements, install commands | `README.md` |
+| Hosts, layout, SDK, tests, CI | `docs/development.md` |
+| Versions, checklist, npm publishing | `docs/releasing.md` |
+| Plugin navigation and editing rules | `plugins/clipboard-copy/AGENTS.md` |
+| Plugin behavior and topic docs | `plugins/clipboard-copy/README.md` |
 | Released changes | `plugins/clipboard-copy/CHANGELOG.md` |
 
 Plugin changes start at `plugins/clipboard-copy/AGENTS.md`.

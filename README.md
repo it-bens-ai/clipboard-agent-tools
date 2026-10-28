@@ -13,7 +13,7 @@
 
 A marketplace repository for clipboard tools that AI coding agents call as MCP tools.
 
-The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server exposing `clipboard_copy` (inline text) and `clipboard_copy_file` (contents of a file at an absolute path). It picks the clipboard backend for the current environment — `pbcopy` on macOS, `wl-copy` / `xclip` / `xsel` on Linux, `clip.exe` on WSL, `clip` on Cygwin/MSYS — and falls back to OSC 52 escape sequences over SSH and in headless environments. Hooks on Claude Code and Codex, and the extension on Pi, name the MCP tools at session start and block native clipboard-write Bash commands. The same repository is a Pi package, and its extension registers the server and runs the same hook scripts.
+The [`clipboard-copy`](./plugins/clipboard-copy/) plugin runs a Bash MCP server exposing `clipboard_copy` (inline text) and `clipboard_copy_file` (contents of a file at an absolute path). It uses the platform clipboard utility and falls back to OSC 52 escape sequences over SSH and in headless environments. Hooks on Claude Code and Codex, and the extension on Pi, name the MCP tools at session start and block native clipboard-write Bash commands.
 
 ## Components
 

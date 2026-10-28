@@ -45,11 +45,11 @@
   | `plugins/clipboard-copy/README.md` | Plugin introduction, tool summary, index of the plugin docs | Module README | enforced |
   | `plugins/clipboard-copy/AGENTS.md` | Task-to-file navigation, plugin editing rules for agents, routing to the plugin docs | LLM pointer file | enforced |
   | `plugins/clipboard-copy/docs/tools.md` | Tool arguments, result text, schema validation, startup failure on a bad `tools.json`, no-echo rule in the tool descriptions | Module topic guide | enforced |
-  | `plugins/clipboard-copy/docs/backends.md` | Backend detection order, native backend commands and utilities, OSC 52 fallback, supported terminals | Module topic guide | enforced |
-  | `plugins/clipboard-copy/docs/hooks.md` | Hook registration, SessionStart directive, Bash block matrix, hook exit codes, unsupported host | Module topic guide | enforced |
+  | `plugins/clipboard-copy/docs/backends.md` | Backend detection order, native utilities, OSC 52 fallback, supported terminals | Module topic guide | enforced |
+  | `plugins/clipboard-copy/docs/hooks.md` | Plugin-root resolution, SessionStart directive, Bash block matrix, hook exit codes, unsupported host | Module topic guide | enforced |
   | `plugins/clipboard-copy/docs/pi.md` | Pi package wiring, supported Pi and Node versions, Pi tool names, Pi directive, Pi Bash check, OSC 52 on Pi | Module topic guide | enforced |
   | `plugins/clipboard-copy/docs/troubleshooting.md` | Failure symptoms and fixes | Module topic guide | enforced |
-  | `plugins/clipboard-copy/docs/architecture.md` | Terms, plugin file layout, host wiring, MCP wire flow, key functions | Architecture document | enforced |
+  | `plugins/clipboard-copy/docs/architecture.md` | Plugin file layout, MCP wire flow, key function contracts | Architecture document | enforced |
   | `plugins/clipboard-copy/docs/testing.md` | Plugin test suites and tags, mocking helpers, manual smoke tests, Codex smoke test | Module topic guide | enforced |
   | `plugins/clipboard-copy/CHANGELOG.md` | Released changes per version | Changelog | exempt: each entry restates what its release changed |
 

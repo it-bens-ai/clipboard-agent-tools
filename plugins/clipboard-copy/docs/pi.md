@@ -1,10 +1,10 @@
 # Pi
 
-The repository root is a Pi package. Its `package.json` names the extension `plugins/clipboard-copy/pi/index.ts` in the `pi.extensions` field. The extension registers the clipboard-copy MCP server and runs the plugin's two hook scripts from its own event handlers; Pi does not read `.mcp.json` or `hooks/hooks.json`. The install commands are in the repository README's [Pi](../../../README.md#pi) section.
+The repository root is a Pi package whose extension is `pi/index.ts`. The extension registers the clipboard-copy MCP server and runs the plugin's two hook scripts from its own event handlers; Pi does not read `.mcp.json` or `hooks/hooks.json`. The install commands are in the repository README's [Pi](../../../README.md#pi) section.
 
 ## Supported versions
 
-Pi support covers macOS and Linux, with Node.js 22.19 or newer and Pi 1.x. CI tests the package against Pi 1.0.0, the oldest supported release, and against the release pinned in `devDependencies`. Pi has shipped breaking changes in 1.x minor and patch releases, so a release newer than the pinned one is untested. The package declares `@earendil-works/pi-coding-agent` as a peer dependency with the range `*`, as Pi's package documentation asks, because Pi loads the extension against its own copy and does not check the range.
+Pi support covers Pi 1.x; the platform and Node.js requirements are in the repository README's [Requirements](../../../README.md#requirements). CI tests the package against Pi 1.0.0, the oldest supported release, and against the release pinned in `devDependencies`. Pi has shipped breaking changes in 1.x minor and patch releases, so a release newer than the pinned one is untested. The package declares `@earendil-works/pi-coding-agent` as a peer dependency with the range `*`, as Pi's package documentation asks, because Pi loads the extension against its own copy and does not check the range.
 
 ## Tools
 
@@ -22,7 +22,7 @@ When the script fails, times out after 5 seconds, or prints no `additionalContex
 
 Before each call of Pi's `bash` tool, the extension runs `hooks/scripts/check-clipboard.sh` with the call's input. [Hooks](hooks.md#bash-enforcement) lists which commands the script blocks. Exit 2 blocks the call, with the script's message as the reason. When the script exits 2 without a message, the block carries a fixed reason saying so. On Pi the message names the tools as `mcp__clipboard_copy__…`. Pi's `powershell` tool is not checked.
 
-Any other failure blocks the call too, with a reason naming the failure, and the extension shows a warning. The script exits 1 for an unsupported `CLIPBOARD_COPY_HOST`, so a failure covers that case as well. When the check cannot run at all, every `bash` call on Pi is blocked, with a warning naming the cause. That covers a missing `jq` on Pi's `PATH`, a 5-second timeout, or a script that cannot start.
+Any exit other than 0 or 2, a missing `jq` on Pi's `PATH`, a 5-second timeout, or a script that cannot start blocks the call too, with a reason naming the failure, and the extension shows a warning. That includes the exit 1 for an unsupported `CLIPBOARD_COPY_HOST`, so when the check cannot run at all, every `bash` call on Pi is blocked.
 
 ## OSC 52 on Pi
 

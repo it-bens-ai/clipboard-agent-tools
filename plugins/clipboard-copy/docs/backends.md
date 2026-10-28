@@ -1,6 +1,6 @@
 # Backends
 
-The server picks a clipboard backend on every tool call. It uses a native clipboard utility when one is on `PATH` and falls back to OSC 52 escape sequences otherwise. The result text names the backend it used; see [Tools](tools.md#results).
+The server picks a clipboard backend on every tool call. It uses a native clipboard utility when one is on `PATH` and falls back to OSC 52 escape sequences otherwise. The result text names the backend it used.
 
 ## Detection order
 
@@ -15,17 +15,6 @@ The server takes the first available backend in this order, scoped to the OS tha
 
 On Linux the last native pass covers headless sessions where `WAYLAND_DISPLAY` and `DISPLAY` are unset but a utility is installed and configured for the session.
 
-Each native backend is called as follows:
-
-| Backend | Command |
-|---|---|
-| `pbcopy` | `pbcopy` |
-| `wl-copy` | `wl-copy` |
-| `xclip` | `xclip -selection clipboard` |
-| `xsel` | `xsel --clipboard --input` |
-| `clip-exe` | `clip.exe` |
-| `clip` | `clip` |
-
 ## Native clipboard utilities
 
 Install a clipboard utility for your platform to skip OSC 52:
@@ -36,7 +25,7 @@ Install a clipboard utility for your platform to skip OSC 52:
 - WSL: `clip.exe` (preinstalled on Windows)
 - Cygwin/MSYS: `clip`
 
-The other requirements, such as `bash` and `jq`, are in the repository README's [Requirements](../../../README.md#requirements).
+Other requirements are in the repository README's [Requirements](../../../README.md#requirements).
 
 ## OSC 52 fallback
 
@@ -60,4 +49,4 @@ OSC 52 is supported by most modern terminal emulators, including:
 - foot
 - tmux (with the wrapping the server applies automatically)
 
-If your terminal does not honor OSC 52, the copy silently does nothing as far as the system clipboard is concerned. The server cannot detect that.
+If your terminal does not honor OSC 52, the copy silently does nothing, and the server cannot detect that.

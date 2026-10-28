@@ -6,9 +6,9 @@ The plugin's own documentation, including its file layout and test suites, start
 
 ## Hosts
 
-Claude Code reads `.claude-plugin/marketplace.json`, `plugins/clipboard-copy/.claude-plugin/plugin.json`, and `plugins/clipboard-copy/.mcp.json`. Codex reads `.agents/plugins/marketplace.json` and `plugins/clipboard-copy/.codex-plugin/plugin.json`. The MCP server, hook scripts, and directive prompt are shared. The hook launchers resolve the plugin root from Codex's `PLUGIN_ROOT` or Claude Code's `CLAUDE_PLUGIN_ROOT`, and fail when neither is set.
+Claude Code reads `.claude-plugin/marketplace.json`, `plugins/clipboard-copy/.claude-plugin/plugin.json`, and `plugins/clipboard-copy/.mcp.json`. Codex reads `.agents/plugins/marketplace.json` and `plugins/clipboard-copy/.codex-plugin/plugin.json`. The MCP server, hook scripts, and directive prompt are shared.
 
-Pi reads the `pi.extensions` field of the root `package.json`, which names `plugins/clipboard-copy/pi/index.ts`. The extension registers the same MCP server and runs `hooks/scripts/session-start.sh` and `hooks/scripts/check-clipboard.sh` from its own event handlers instead of `hooks/hooks.json`. It sets `CLIPBOARD_COPY_HOST=pi` for the server and both scripts, and `CLIPBOARD_COPY_OSC52_DIR` for the server. Claude Code and Codex leave `CLIPBOARD_COPY_HOST` unset; both hook scripts exit 1 on any other value.
+Pi reads the `pi.extensions` field of the root `package.json`, which names `plugins/clipboard-copy/pi/index.ts`. The plugin's [Pi](../plugins/clipboard-copy/docs/pi.md) guide covers what the extension runs.
 
 The package `files` list limits what npm publishes to the plugin's runtime directories, its `docs/` directory, its README, and its CHANGELOG. npm adds the root `README.md`, `package.json`, and `LICENSE` on its own.
 

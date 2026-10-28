@@ -1,29 +1,20 @@
 # clipboard-copy — Agent Guide
 
-Human-facing documentation is in `README.md` and `docs/`. This file routes tasks to files and lists the rules for editing the plugin.
+This file routes tasks to files and lists the rules for editing the plugin.
 
 ## Documentation
 
-| Topic | File |
-|---|---|
-| Tool arguments, results, schema validation | `docs/tools.md` |
-| Backend detection order, OSC 52 fallback | `docs/backends.md` |
-| SessionStart directive, Bash block matrix, hook exit codes | `docs/hooks.md` |
-| Pi extension behavior, Pi tool names, supported Pi versions | `docs/pi.md` |
-| Failure symptoms and fixes | `docs/troubleshooting.md` |
-| File layout, host wiring, terms, MCP wire flow, key functions | `docs/architecture.md` |
-| Test suites, tags, mocking helpers, manual smoke tests | `docs/testing.md` |
-| Repository layout, test and lint commands, CI, vendored SDK | `../../docs/development.md` |
+The topic docs under `docs/` are indexed in `README.md` §Documentation. Repository layout, test commands, and CI are in `../../docs/development.md`.
 
 ## Before editing
 
-- Keep the plugin working on Claude Code, Codex, and Pi (`docs/architecture.md` §Host wiring).
-- Keep `hooks/hooks.json` valid for both Claude Code and Codex. Resolve the plugin root from `PLUGIN_ROOT` or `CLAUDE_PLUGIN_ROOT` and fail when neither is set; never probe cwd-relative fallback paths (`docs/hooks.md` §Hook registration).
+- Keep the plugin working on Claude Code, Codex, and Pi (`../../docs/development.md` §Hosts).
+- Keep `hooks/hooks.json` valid for both Claude Code and Codex. Resolve the plugin root from `PLUGIN_ROOT` or `CLAUDE_PLUGIN_ROOT` and fail when neither is set; never probe cwd-relative fallback paths (`docs/hooks.md` §Hooks).
 - Codex files are additive. Never replace a Claude Code file to add Codex support.
 - Pi-specific wording goes in `hooks/prompts/host-pi.md` or behind `CLIPBOARD_COPY_HOST=pi`, never into `hooks/prompts/mcp-tool-directives.md` (`docs/pi.md` §Directive).
 - Keep the `block_clipboard` message free of Claude-only or Codex-only terminology (`docs/architecture.md` §Key functions).
 - Never edit `shared/mcpserver_core.sh`. It is vendored from `shopwareLabs/bash-mcp-sdk`; protocol changes go to that repository (`../../docs/development.md` §Vendored MCP SDK).
-- When behavior changes, update the `docs/` file that owns it (table above) and add an entry to `CHANGELOG.md`. A new test suite gets a bullet in `docs/testing.md` §Suites.
+- When behavior changes, update the `docs/` file that owns it and add an entry to `CHANGELOG.md`. A new test suite gets a bullet in `docs/testing.md` §Suites.
 
 ## Navigation
 
