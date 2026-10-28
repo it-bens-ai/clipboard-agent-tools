@@ -30,6 +30,7 @@ plugin-tests/test_helper/                # Shared BATS helper
 .github/workflows/ci.yml                 # Path-filtered Node and Bash tests, lint, and version check
 .github/workflows/npm-publish.yml        # Publishes the Pi package to npm on v* tags
 .github/ISSUE_TEMPLATE/                  # Issue forms
+.github/assets/social-preview.png        # README header image and Pi gallery preview (pi.image)
 .shellcheckrc                            # ShellCheck rules
 renovate.json                            # Dependency update rules
 .github/scripts/vendor-mcp-sdk.sh        # Vendors the pinned bash-mcp-sdk core
@@ -91,7 +92,7 @@ The Codex and Pi smoke-test commands alter your Codex and Pi configuration; run 
 
 ## Version bumps
 
-Set the release version in `package.json`, `plugins/clipboard-copy/.claude-plugin/plugin.json`, `plugins/clipboard-copy/.codex-plugin/plugin.json`, and `serverInfo.version` in `plugins/clipboard-copy/mcp-server-clipboard/config.json`, then add a matching entry to `plugins/clipboard-copy/CHANGELOG.md`. The Codex manifest carries a build suffix after `+` (`"version": "1.3.0+codex.<timestamp>"`); the part before `+` must equal the Claude Code manifest version. `.github/scripts/check-versions.sh` compares all four; CI runs it with no argument, and `npm-publish.yml` passes the tag so a publish also requires the tag to match. The script exits 1 and names the file when a manifest has no version or an empty one.
+Set the release version in `package.json`, `plugins/clipboard-copy/.claude-plugin/plugin.json`, `plugins/clipboard-copy/.codex-plugin/plugin.json`, and `serverInfo.version` in `plugins/clipboard-copy/mcp-server-clipboard/config.json`, then add a matching entry to `plugins/clipboard-copy/CHANGELOG.md`. The Codex manifest carries a build suffix after `+` (`"version": "2.0.0+codex.<timestamp>"`); the part before `+` must equal the Claude Code manifest version. `.github/scripts/check-versions.sh` compares all four; CI runs it with no argument, and `npm-publish.yml` passes the tag so a publish also requires the tag to match. The script exits 1 and names the file when a manifest has no version or an empty one.
 
 ## Pre-release checklist
 
@@ -105,8 +106,6 @@ Set the release version in `package.json`, `plugins/clipboard-copy/.claude-plugi
 ## Distribution
 
 Users install this repository as a marketplace. Claude Code runs `/plugin marketplace add it-bens-ai/clipboard-agent-tools` then `/plugin install clipboard-copy@clipboard-agent-tools`; Codex runs `codex plugin marketplace add it-bens-ai/clipboard-agent-tools` then `codex plugin add clipboard-copy@clipboard-agent-tools`. Pi runs `pi install npm:@it-bens-ai/clipboard-agent-tools` or `pi install git:github.com/it-bens-ai/clipboard-agent-tools`. See README §Install for host restart instructions.
-
-The npm package is not on the registry yet, so `pi install npm:@it-bens-ai/clipboard-agent-tools` returns 404 until the first publish. Publish it with the release that ships Pi support: bump all four versions under Version bumps, add the CHANGELOG entry, tag, and publish. Never publish 1.3.0, which predates Pi support.
 
 Pushing a `v*` tag runs `.github/workflows/npm-publish.yml`. It publishes only a commit that is contained in `origin/main`, and it repeats the Node, ShellCheck, SDK pin, and BATS checks. It also requires the tag to match the versions listed under Version bumps. Publishing uses npm trusted publishing (GitHub OIDC, no token). Trusted publishing cannot create a package, so the first version is published by hand; the workflow skips `npm publish` when the tagged version is already on the registry.
 

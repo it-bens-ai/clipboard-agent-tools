@@ -34,7 +34,7 @@ Codex exposes the same MCP tools. In the tested local install, they appear under
 
 ### Pi
 
-The npm package is published with the release that ships Pi support. Until then, install from the Git repository. The [repository README](https://github.com/it-bens-ai/clipboard-agent-tools#pi) holds both commands and the `pi list` check.
+Pi installs the package from npm or from the Git repository. The [repository README](https://github.com/it-bens-ai/clipboard-agent-tools#pi) holds both commands and the `pi list` check.
 
 Then ask Pi to copy something. Pi names the tools `mcp__clipboard_copy__clipboard_copy` and `mcp__clipboard_copy__clipboard_copy_file`, and the model loads them through `tool_search` before the first call.
 

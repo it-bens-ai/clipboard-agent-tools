@@ -1,3 +1,5 @@
+![Clipboard Agent Tools](./.github/assets/social-preview.png)
+
 # Clipboard Agent Tools
 
 [![bash 5.1+](https://img.shields.io/badge/bash-5.1%2B-4EAA25?logo=gnubash&logoColor=white)](./plugins/clipboard-copy/README.md#requirements)
@@ -53,7 +55,7 @@ Start a new Codex task after installation.
 pi install npm:@it-bens-ai/clipboard-agent-tools
 ```
 
-The npm package is published with the release that ships Pi support, so it is not on the registry yet. Until then, install from the Git repository:
+To install from the Git repository instead:
 
 ```bash
 pi install git:github.com/it-bens-ai/clipboard-agent-tools
