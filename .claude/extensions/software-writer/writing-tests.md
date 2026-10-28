@@ -19,7 +19,7 @@
 
 ## Pre-Step-2
 
-Read `plugins/clipboard-copy/AGENTS.md` §Testing and place the test in the suite its `Files:` list assigns to the behavior's area. When creating a new suite, add its bullet there.
+Read `plugins/clipboard-copy/docs/testing.md` §Suites and place the test in the suite that list assigns to the behavior's area. When creating a new suite, add its bullet there and its area tag to §Running the suites.
 
 ## Post-Step-6
 

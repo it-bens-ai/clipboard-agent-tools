@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The npm package includes the plugin's `docs/` directory.
+
 ### Fixed
 
 - A paste-mode `xclip` or `xsel` call could let other calls of the same tool in the same command through (for example, `xclip -i < f; xclip -o`); now each call is checked on its own.

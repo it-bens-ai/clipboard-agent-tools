@@ -19,6 +19,7 @@
     "plugins/clipboard-copy/hooks/prompts/",
     "plugins/clipboard-copy/mcp-server-clipboard/",
     "plugins/clipboard-copy/shared/",
+    "plugins/clipboard-copy/docs/",
     "plugins/clipboard-copy/README.md",
     "plugins/clipboard-copy/CHANGELOG.md",
     "!**/*.log"

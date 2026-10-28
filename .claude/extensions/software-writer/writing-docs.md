@@ -3,19 +3,28 @@
 - `docs.surfaces` =
   | Surface | Owns | Shape | Single-owner |
   |---|---|---|---|
-  | `README.md` | Marketplace pitch, requirements, per-host install commands, pointers into plugin docs | Root README | enforced |
-  | `AGENTS.md` | Host model (Claude Code, Codex, Pi), repository architecture, test commands, version bumps | Architecture document | enforced |
-  | `plugins/clipboard-copy/README.md` | Tool catalog, backend detection order, hook behavior, plugin layout, requirements | Module README | enforced |
-  | `plugins/clipboard-copy/AGENTS.md` | Plugin file layout, key functions, task-to-file navigation, MCP wire flow, test suites, manual smoke tests | Module architecture and navigation document | enforced |
+  | `README.md` | Marketplace pitch, requirements, per-host install commands, pointers into the docs | Root README | enforced |
+  | `AGENTS.md` | Routing to the repository docs, repository working rules for agents | LLM pointer file | enforced |
+  | `docs/development.md` | Host model (Claude Code, Codex, Pi), repository layout, vendored MCP SDK, test commands, CI, local validation | Architecture document | enforced |
+  | `docs/releasing.md` | Version bumps, pre-release checklist, npm publishing | Procedural guide | enforced |
+  | `plugins/clipboard-copy/README.md` | Plugin introduction, tool summary, index of the plugin docs | Module README | enforced |
+  | `plugins/clipboard-copy/AGENTS.md` | Task-to-file navigation, plugin editing rules for agents, routing to the plugin docs | LLM pointer file | enforced |
+  | `plugins/clipboard-copy/docs/tools.md` | Tool arguments, result text, schema validation, startup failure on a bad `tools.json`, no-echo rule in the tool descriptions | Module topic guide | enforced |
+  | `plugins/clipboard-copy/docs/backends.md` | Backend detection order, native backend commands and utilities, OSC 52 fallback, supported terminals | Module topic guide | enforced |
+  | `plugins/clipboard-copy/docs/hooks.md` | Hook registration, SessionStart directive, Bash block matrix, hook exit codes, unsupported host | Module topic guide | enforced |
+  | `plugins/clipboard-copy/docs/pi.md` | Pi package wiring, supported Pi and Node versions, Pi tool names, Pi directive, Pi Bash check, OSC 52 on Pi | Module topic guide | enforced |
+  | `plugins/clipboard-copy/docs/troubleshooting.md` | Failure symptoms and fixes | Module topic guide | enforced |
+  | `plugins/clipboard-copy/docs/architecture.md` | Terms, plugin file layout, host wiring, MCP wire flow, key functions | Architecture document | enforced |
+  | `plugins/clipboard-copy/docs/testing.md` | Plugin test suites and tags, mocking helpers, manual smoke tests, Codex smoke test | Module topic guide | enforced |
   | `plugins/clipboard-copy/CHANGELOG.md` | Released changes per version | Changelog | exempt: each entry restates what its release changed |
 
   Runtime prompt text under `plugins/clipboard-copy/hooks/prompts/` is a runtime file, not a documentation surface.
-- `docs.pointer_file` = none; the repository tracks no `CLAUDE.md`, and `AGENTS.md` opens with `@README.md`
-- `docs.jargon_home` = `AGENTS.md`
+- `docs.pointer_file` = `AGENTS.md`. Both `AGENTS.md` files route with plain file paths and no `@` include. `plugins/clipboard-copy/AGENTS.md` also keeps its `## Navigation` task-to-file table, which is exempt from the pointer line limit.
+- `docs.jargon_home` = `plugins/clipboard-copy/docs/architecture.md` §Terms
 - `docs.changelog` = `plugins/clipboard-copy/CHANGELOG.md`; Keep a Changelog with `## [x.y.z] - YYYY-MM-DD` entries. Each release version matches `package.json`, `plugins/clipboard-copy/.claude-plugin/plugin.json`, the part before `+` in `plugins/clipboard-copy/.codex-plugin/plugin.json`, and `serverInfo.version` in `plugins/clipboard-copy/mcp-server-clipboard/config.json`
 
 ## Post-Step-5
 
-When the change documents altered tool behavior, confirm both `plugins/clipboard-copy/README.md` and `plugins/clipboard-copy/AGENTS.md` were updated, then add or extend the `plugins/clipboard-copy/CHANGELOG.md` entry for the release.
+When the change documents altered tool, backend, hook, or Pi behavior, update the `plugins/clipboard-copy/docs/` file that owns it per `docs.surfaces`, and the one-line tool summary in `plugins/clipboard-copy/README.md` when a tool is added, removed, or renamed. Update `plugins/clipboard-copy/AGENTS.md` §Navigation when a file or function moves. Then add or extend the `## [Unreleased]` entry in `plugins/clipboard-copy/CHANGELOG.md`.
 
 Before finishing, re-check every path, command, and file name the diff introduces against the repository. No CI checks documentation here.
