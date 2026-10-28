@@ -1,6 +1,6 @@
 {
   "name": "@it-bens-ai/clipboard-agent-tools",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Clipboard MCP tools for pi: copy inline text or a file's contents to the system clipboard, with a bash check that keeps the agent on the MCP tools.",
   "type": "module",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "clipboard-copy",
-  "version": "2.0.0+codex.20261027235838",
+  "version": "2.0.1+codex.20261028115650",
   "description": "Cross-platform clipboard MCP tools for copying inline text or file contents to the system clipboard from Codex.",
   "author": {
     "name": "Martin Bens",
