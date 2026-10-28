@@ -101,13 +101,17 @@ A `PreToolUse` hook on the `Bash` tool blocks native clipboard-write commands an
 | `xsel` without `-o` / `--output` | Block |
 | `pbpaste`, `wl-paste`, `xclip -o`, `xsel -o` | Allow (clipboard reads are not the target) |
 
+`xclip` and `xsel` write to the clipboard by default, so each call needs its own paste flag before the next `|`, `;` or `&`. A paste flag on one call does not cover another call of the same tool.
+
 Pipes, `;`, `&&`, and `\|\|` are recognized as command separators so chained invocations are caught:
 
 ```bash
 echo "secret" | pbcopy            # blocked
 date && wl-copy < file            # blocked
 xclip -selection clipboard < f    # blocked
+xclip -i < f; xclip -o            # blocked (the first call writes)
 xclip -o > out.txt                # allowed (paste)
+xclip -selection clipboard -o|grep x   # allowed (paste)
 ```
 
 ## OSC 52 Fallback

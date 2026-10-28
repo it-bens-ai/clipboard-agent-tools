@@ -159,6 +159,22 @@ The clipboard-copy MCP tool:
     assert_output 'clipboard-copy: unsupported CLIPBOARD_COPY_HOST "codex"; expected pi or unset'
 }
 
+# bats test_tags=block,message,xclip
+@test "an xclip block message carries the xclip paste-flag hint" {
+    run_hook "$SCRIPT" "echo hi | xclip -selection clipboard"
+
+    assert_failure 2
+    assert_line "Use clipboard_copy with the text directly, or clipboard_copy_file with an absolute path when the content is already on disk. (xclip -o / -out for paste is allowed.)"
+}
+
+# bats test_tags=block,message,xsel
+@test "an xsel block message carries the xsel paste-flag hint" {
+    run_hook "$SCRIPT" "echo hi | xsel --clipboard"
+
+    assert_failure 2
+    assert_line "Use clipboard_copy with the text directly, or clipboard_copy_file with an absolute path when the content is already on disk. (xsel -o / --output for paste is allowed.)"
+}
+
 # bats test_tags=allow,host
 @test "an unsupported CLIPBOARD_COPY_HOST fails a command that writes no clipboard" {
     run_hook_on_host codex "git status"
@@ -241,6 +257,12 @@ The clipboard-copy MCP tool:
     assert_success
 }
 
+# bats test_tags=allow,paste,xclip
+@test "allows xclip -selection clipboard -o directly before a pipe" {
+    run_hook "$SCRIPT" "xclip -selection clipboard -o|grep x"
+    assert_success
+}
+
 # bats test_tags=allow,xclip,xsel
 @test "allows xclip paste followed by xsel paste" {
     run_hook "$SCRIPT" "xclip -o; xsel -o"
@@ -255,8 +277,8 @@ The clipboard-copy MCP tool:
 
 # bats test_tags=allow,xclip
 @test "allows a word ending in xclip before an xclip paste" {
-    # The next scan must resume after the matched segment; resuming at the
-    # segment's length from the start lands on "xclip -i" and blocks.
+    # The segment pattern needs a separator or the start of the line before
+    # the tool name and whitespace after it, so "12345xclip" is not a call.
     run_hook "$SCRIPT" "echo 12345xclip -i; ls | xclip -o"
     assert_success
 }
@@ -294,6 +316,12 @@ The clipboard-copy MCP tool:
 # bats test_tags=allow,false-positive
 @test "does not trigger on 'grep clip file.txt' (clip is the search term)" {
     run_hook "$SCRIPT" "grep clip file.txt"
+    assert_success
+}
+
+# bats test_tags=allow,false-positive,xclip
+@test "does not trigger on a word that starts with xclip but is not a call" {
+    run_hook "$SCRIPT" "echo xclipo -i"
     assert_success
 }
 

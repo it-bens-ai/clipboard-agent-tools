@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- A paste-mode `xclip` or `xsel` call could let other calls of the same tool in the same command through (for example, `xclip -i < f; xclip -o`); now each call is checked on its own. A paste flag directly followed by `;`, as in `xclip -o; xsel -o`, no longer blocks the command.
+- A paste-mode `xclip` or `xsel` call could let other calls of the same tool in the same command through (for example, `xclip -i < f; xclip -o`); now each call is checked on its own.
+- A paste flag directly followed by `;` or `|`, as in `xclip -o; xsel -o` or `xclip -o|grep x`, no longer blocks the command.
 
 ## [2.0.0] - 2026-10-28
 

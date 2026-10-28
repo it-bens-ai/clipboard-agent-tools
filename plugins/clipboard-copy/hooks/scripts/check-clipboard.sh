@@ -44,21 +44,46 @@ if echo "$COMMAND" | grep -qE '(^|;|&&|\|)\s*clip(\s|$)'; then
     block_clipboard "clipboard_copy" "$HINT"
 fi
 
-# Each xclip or xsel segment must have its own paste flag.
+#######################################
+# Block a command whose xclip or xsel call has no paste flag of its own.
+# Both tools write to the clipboard unless the call asks for a paste, so
+# every call needs -o / -out / --output before the next |, ; or &.
+# Globals:
+#   COMMAND - the Bash command being checked.
+# Arguments:
+#   $1 - tool name, interpolated into the segment regex unescaped; callers
+#        pass a plain name such as xclip, never a pattern.
+#   $2 - POSIX ERE that a paste call of that tool matches.
+#   $3 - hint naming the paste flags, appended to the block message.
+# Outputs:
+#   Nothing on stdout; the block message goes to stderr.
+# Returns:
+#   Does not return when a call lacks a paste flag: it exits 2 through
+#   block_clipboard. A scan that fails also blocks, so no failure is read as
+#   a paste. Otherwise returns 0.
+#######################################
 check_paste_segments() {
     local tool="$1" paste_pattern="$2" hint="$3"
-    local remaining segment_pattern segment
-    segment_pattern="(^|;|&&|\|)[[:space:]]*${tool}([[:space:]]|$)[^|;&]*"
+    local segment_pattern segments segment rc
 
-    while IFS= read -r remaining; do
-        while [[ "$remaining" =~ $segment_pattern ]]; do
-            segment="${BASH_REMATCH[0]}"
-            remaining="${remaining#*"$segment"}"
-            if [[ ! "$segment" =~ $paste_pattern ]]; then
-                block_clipboard "clipboard_copy" "$HINT $hint"
-            fi
-        done
-    done <<< "$COMMAND"
+    [[ $COMMAND == *"$tool"* ]] || return 0
+
+    segment_pattern="(^|;|&&|\|)[[:space:]]*${tool}([[:space:]]|$)[^|;&]*"
+    rc=0
+    segments=$(printf '%s\n' "$COMMAND" | grep -oE "$segment_pattern") || rc=$?
+    if (( rc >= 2 )); then
+        block_clipboard "clipboard_copy" "$HINT $hint"
+    fi
+
+    while IFS= read -r segment; do
+        # An empty $segments still gives one empty line here; testing it would
+        # block a command that only mentions the name, such as "echo xclipo".
+        [[ -n $segment ]] || continue
+        # No match (status 1) and an invalid pattern (status 2) both block.
+        if [[ ! $segment =~ $paste_pattern ]]; then
+            block_clipboard "clipboard_copy" "$HINT $hint"
+        fi
+    done <<< "$segments"
 }
 
 check_paste_segments "xclip" 'xclip[^|;&]*[[:space:]]-o(ut)?([[:space:]]|$)' \
