@@ -112,6 +112,8 @@ jobs:
             echo "published=false" >> "${GITHUB_OUTPUT}"
           fi
 
-      - name: Publish to npm
+      # The trusted publisher allows staging only. The version goes live once a maintainer
+      # approves it with 2FA (`npm stage approve <stage-id>`).
+      - name: Stage the version on npm
         if: steps.registry.outputs.published != 'true'
-        run: npm publish
+        run: npm stage publish
