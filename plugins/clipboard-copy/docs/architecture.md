@@ -97,7 +97,7 @@ Exits 1 with the [Unsupported host](hooks.md#unsupported-host) message for any `
 Writes a host-neutral block message (the command, the MCP tool, the hint, and why the MCP path is preferred) to stderr and exits 2. With `CLIPBOARD_COPY_HOST=pi` it prefixes bare tool names in the tool and the hint with `mcp__clipboard_copy__`; an already-qualified name is never prefixed twice, and in the hint only a bare `clipboard_copy` is qualified.
 
 #### `check-clipboard.sh` (entry point)
-Calls `parse_hook_input`, then `validate_clipboard_host`, then matches `$COMMAND` with `grep -E` patterns anchored at segment starts (`^|;|&&|\|`). [Bash enforcement](hooks.md#bash-enforcement) lists what they block.
+Calls `parse_hook_input`, then `validate_clipboard_host`, then matches `$COMMAND` with `grep -E` patterns anchored at segment starts (`^|;|&&|\|`). For `xclip` and `xsel`, `check_paste_segments(tool, paste_pattern, hint)` returns at once when the tool name is absent from the command. Otherwise it extracts every call of the tool with one `grep -oE`, from a segment start up to the next `|`, `;` or `&`, and blocks the first call that does not match the paste pattern. A grep failure or an invalid paste pattern blocks, so a failed scan never reads as a paste. [Bash enforcement](hooks.md#bash-enforcement) lists what the patterns block.
 
 ### Pi extension (`pi/`)
 

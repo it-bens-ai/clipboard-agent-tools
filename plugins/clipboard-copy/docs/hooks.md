@@ -24,14 +24,27 @@ The `PreToolUse` hook runs `hooks/scripts/check-clipboard.sh` before each `Bash`
 | `xsel` without `-o` / `--output` | Block |
 | `pbpaste`, `wl-paste`, `xclip -o`, `xsel -o` | Allow (clipboard reads are not the target) |
 
-A command is matched only at the start of a command segment. A segment starts at the beginning of the command or after a pipe, `;`, `&&`, or `||`, so chained invocations are caught. A paste flag must follow the same tool name within one segment, so `xsel -o` cannot excuse `xclip -i`. A paste-mode invocation anywhere in the command allows every invocation of that same tool: `xclip -i < f; xclip -o` is allowed.
+A command is matched only at the start of a command segment. A segment starts at the beginning of the command or after a pipe, `;`, `&&`, or `||`, so chained invocations are caught. `xclip` and `xsel` write to the clipboard by default, so each call needs its own paste flag before the next `|`, `;` or `&`. A paste flag on one call does not excuse another call, even of the same tool.
 
 ```bash
 echo "secret" | pbcopy            # blocked
 date && wl-copy < file            # blocked
 xclip -selection clipboard < f    # blocked
+xclip -i < f; xclip -o            # blocked (the first call writes)
 xclip -o > out.txt                # allowed (paste)
+xclip -o|grep x                   # allowed (paste)
 ```
+
+### Scope
+
+The hook catches the direct calls an agent makes out of habit, such as `… | pbcopy` or `xclip -selection clipboard < f`, and points to the MCP tools. It is a nudge, not a security boundary: it matches text and does not parse the shell, so other ways to reach a clipboard utility get through, and some commands that do not write the clipboard are blocked.
+
+- A single `&` does not start a segment: `true & pbcopy` is allowed.
+- A path or wrapper before the tool name hides it: `/usr/bin/xclip`, `command pbcopy` and `sudo pbcopy` are allowed.
+- Quotes are not parsed: `echo 'a; pbcopy b'` is blocked.
+- A combined flag and a paste flag on a continuation line do not count: `xsel -bo` and `xclip \` followed by `-o` on the next line are blocked.
+- A paste flag inside a quoted file name counts: `xclip -i "notes -o;v2.txt"` is allowed.
+- Text after `#` is checked like a command: `xclip -o # note ; xclip -i` is blocked.
 
 ### Exit codes
 

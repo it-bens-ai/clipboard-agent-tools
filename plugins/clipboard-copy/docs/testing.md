@@ -14,7 +14,7 @@ Each suite carries the file tag `clipboard-copy` plus one area tag: `hook`, `det
 
 ## Suites
 
-- `check_clipboard.bats` — the PreToolUse block/allow matrix, chaining and false-positive guards, the block message per `CLIPBOARD_COPY_HOST`, the unsupported-host exit, and the empty command.
+- `check_clipboard.bats` — the PreToolUse block/allow matrix, chaining and false-positive guards, the per-call paste-flag rule for `xclip` and `xsel`, the paste-flag hint line, the block message per `CLIPBOARD_COPY_HOST`, the unsupported-host exit, and the empty command.
 - `detect_backend.bats` — the `_clipboard_detect_backend` cascade across OS, installed utilities, and display variables.
 - `tool_clipboard_copy_file.bats` — every path-validation branch and byte-exact capture on success, with `_clipboard_send_stdin` stubbed; smoke-checks `tool_clipboard_copy` text validation.
 - `server_startup_tools_list.bats` — startup refuses a missing, invalid, multi-document, or wrongly shaped tool list.
