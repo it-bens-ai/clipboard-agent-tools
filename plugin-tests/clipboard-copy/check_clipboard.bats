@@ -83,6 +83,30 @@ SCRIPT="check-clipboard.sh"
     assert_failure 2
 }
 
+# bats test_tags=block,xclip
+@test "blocks xclip write before a later xclip paste" {
+    run_hook "$SCRIPT" "xclip -i < f; xclip -o"
+    assert_failure 2
+}
+
+# bats test_tags=block,xclip
+@test "blocks xclip write after an xclip paste pipe" {
+    run_hook "$SCRIPT" "xclip -o | xclip -i"
+    assert_failure 2
+}
+
+# bats test_tags=block,xsel
+@test "blocks xsel write before a later xsel paste" {
+    run_hook "$SCRIPT" "xsel -i < f && xsel -o"
+    assert_failure 2
+}
+
+# bats test_tags=block,xsel
+@test "blocks xsel write after an xsel paste pipe" {
+    run_hook "$SCRIPT" "xsel --output | xsel --input"
+    assert_failure 2
+}
+
 # =============================================================================
 # BLOCK MESSAGE — tool names as the host spells them
 # =============================================================================
@@ -133,6 +157,22 @@ The clipboard-copy MCP tool:
 
     assert_failure 1
     assert_output 'clipboard-copy: unsupported CLIPBOARD_COPY_HOST "codex"; expected pi or unset'
+}
+
+# bats test_tags=block,message,xclip
+@test "an xclip block message carries the xclip paste-flag hint" {
+    run_hook "$SCRIPT" "echo hi | xclip -selection clipboard"
+
+    assert_failure 2
+    assert_line "Use clipboard_copy with the text directly, or clipboard_copy_file with an absolute path when the content is already on disk. (xclip -o / -out for paste is allowed.)"
+}
+
+# bats test_tags=block,message,xsel
+@test "an xsel block message carries the xsel paste-flag hint" {
+    run_hook "$SCRIPT" "echo hi | xsel --clipboard"
+
+    assert_failure 2
+    assert_line "Use clipboard_copy with the text directly, or clipboard_copy_file with an absolute path when the content is already on disk. (xsel -o / --output for paste is allowed.)"
 }
 
 # bats test_tags=allow,host
@@ -211,6 +251,38 @@ The clipboard-copy MCP tool:
     assert_success
 }
 
+# bats test_tags=allow,xclip
+@test "allows xclip paste piped to grep" {
+    run_hook "$SCRIPT" "xclip -o | grep x"
+    assert_success
+}
+
+# bats test_tags=allow,paste,xclip
+@test "allows xclip -selection clipboard -o directly before a pipe" {
+    run_hook "$SCRIPT" "xclip -selection clipboard -o|grep x"
+    assert_success
+}
+
+# bats test_tags=allow,xclip,xsel
+@test "allows xclip paste followed by xsel paste" {
+    run_hook "$SCRIPT" "xclip -o; xsel -o"
+    assert_success
+}
+
+# bats test_tags=allow,xclip,xsel
+@test "allows xsel paste followed by xclip paste" {
+    run_hook "$SCRIPT" "xsel -o && xclip -out"
+    assert_success
+}
+
+# bats test_tags=allow,xclip
+@test "allows a word ending in xclip before an xclip paste" {
+    # The segment pattern needs a separator or the start of the line before
+    # the tool name and whitespace after it, so "12345xclip" is not a call.
+    run_hook "$SCRIPT" "echo 12345xclip -i; ls | xclip -o"
+    assert_success
+}
+
 # bats test_tags=allow,unrelated
 @test "allows unrelated git command" {
     run_hook "$SCRIPT" "git status"
@@ -244,6 +316,12 @@ The clipboard-copy MCP tool:
 # bats test_tags=allow,false-positive
 @test "does not trigger on 'grep clip file.txt' (clip is the search term)" {
     run_hook "$SCRIPT" "grep clip file.txt"
+    assert_success
+}
+
+# bats test_tags=allow,false-positive,xclip
+@test "does not trigger on a word that starts with xclip but is not a call" {
+    run_hook "$SCRIPT" "echo xclipo -i"
     assert_success
 }
 
